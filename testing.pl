@@ -9,26 +9,10 @@ use Benchmark;
 use ImgurAPI::ImgurAPI;
 
 my $username = 'selftaught';
-my $ImgurAPI = new ImgurAPI::ImgurAPI();
+my $ImgurAPI = new ImgurAPI();
 
 $ImgurAPI->auth_ini('/Users/Dillan/Development/Perl/ImgurAPI/examples/auth.ini');
 #$ImgurAPI->set_format_type('xml');
-
-=pod
-my %hash;
-
-$hash{'foo'}{'bar'} = 'asdf';
-
-my $hash_ref = \$hash{'foo'}{'bar'};
-
-#print Dumper(\%hash);
-
-say $$hash_ref;
-
-#print Dumper(\%hash);
-
-exit;
-=cut
 
 #--------------------
 # Account methods
