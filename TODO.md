@@ -2,6 +2,6 @@
 - [ ] Examples 
 - [ ] Die statements
 - [ ] Unit tests
-- [ ] Makefile.PL
+- [x] Makefile.PL
 - [ ] Install script
 - [ ] Upload to CPAN
