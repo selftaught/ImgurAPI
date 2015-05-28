@@ -12,17 +12,14 @@ use DateTime::Format::ISO8601;
 use Config::IniFiles;
 use Scalar::Util;
 use Class::Std::Utils;
+use MIME::Base64;
+use File::Slurp;
 
 BEGIN {
     # Set PERL_LWP_SSL_VERIFY_HOSTNAME to 0 or
     # request to Imgur's API will return SSL ERRORS
     $ENV{'PERL_LWP_SSL_VERIFY_HOSTNAME'} = 0;
 }
-
-use constant {
-    false => 0,
-    true  => 1
-};
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -31,13 +28,6 @@ use constant ENDPOINTS => {
     'OAUTH_AUTHORIZE' => 'https://api.imgur.com/oauth2/authorize',
     'OAUTH_TOKEN'     => 'https://api.imgur.com/oauth2/token',
     'OAUTH_SECRET'    => 'https://api.imgur.com/oauth2/secret'
-};
-
-use constant ALLOWED_FIELDS => {
-    'ALBUM'           => ('ids', 'title', 'description', 'privacy', 'layout', 'cover'),
-    'ADVANCED_SEARCH' => ('q_all', 'q_any', 'q_exactly', 'q_not', 'q_type', 'q_size_px'),
-    'ACCOUNT'         => ('bio', 'public_images', 'messaging_enabled', 'album_privacy', 'accepted_gallery_terms', 'username'),
-    'IMAGE'           => ('album', 'name', 'title', 'description')
 };
 
 # Hash which all member variables will be stored in
@@ -50,7 +40,7 @@ sub new {
     my $this   = bless {}, shift;
     my $obj_id = ident $this;
 
-    $m_vars{ $obj_id }{'auth'}               = true;
+    $m_vars{ $obj_id }{'auth'}               = 1;
     $m_vars{ $obj_id }{'client_id'}          = shift;
     $m_vars{ $obj_id }{'client_secret'}      = shift;
     $m_vars{ $obj_id }{'refresh_token'}      = shift;
@@ -58,9 +48,9 @@ sub new {
     $m_vars{ $obj_id }{'format_type'}        = 'json';
     $m_vars{ $obj_id }{'response_type'}      = 'pin';
     $m_vars{ $obj_id }{'lwp_user_agent'}     = new LWP::UserAgent;
-    $m_vars{ $obj_id }{'last_response_code'} = undef;
-    $m_vars{ $obj_id }{'full_responses'}     = true;
-    $m_vars{ $obj_id }{'verbose_output'}     = false;
+    $m_vars{ $obj_id }{'last_response_code'} = 0;
+    $m_vars{ $obj_id }{'full_responses'}     = 1;
+    $m_vars{ $obj_id }{'verbose_output'}     = 0;
 
     # Default headers
     $this->set_headers();
@@ -97,11 +87,12 @@ sub authorize {
         return $this->refresh();
     }
 
-    return false if not defined $response->{'access_token'};
+    return 0 if not defined $response->{'access_token'};
 
-    $m_vars{ $obj_id }{'access_token'}   = $response->{'access_token'};
-    $m_vars{ $obj_id }{'refresh_token'}  = $response->{'refresh_token'}; 
-    $m_vars{ $obj_id }{'exiration_time'} = DateTime->now;
+    $m_vars{ $obj_id }{'access_token'}    = $response->{'access_token'};
+    $m_vars{ $obj_id }{'refresh_token'}   = $response->{'refresh_token'}; 
+    $m_vars{ $obj_id }{'expiration_time'} = DateTime->now;
+    $m_vars{ $obj_id }{'expiration_time'}->add( hours => 1);
 
     $this->set_headers();
 
@@ -126,20 +117,16 @@ sub refresh {
     my $response = $this->request(ENDPOINTS->{'OAUTH_TOKEN'}, 'POST', $post_data);
        $response = decode_json($response) if length $response;
 
-    my $expiration_time = DateTime->now;
-       $expiration_time->add( hours => 1 );
+
+    $m_vars{ $obj_id }{'expiration_time'} = DateTime->now;
+    $m_vars{ $obj_id }{'expiration_time'}->add( hours => 1 );
 
     my $m_rt = \$m_vars{ $obj_id }{'refresh_token'};
     my $m_at = \$m_vars{ $obj_id }{'access_token'};
-    my $m_et = \$m_vars{ $obj_id }{'expires_in'};
-
     my $r_rt = \$response->{'refresh_token'};
     my $r_at = \$response->{'access_token'};
-    my $r_et = \$response->{'expires_in'};
-
-    $$m_rt = (defined $$r_rt && length $$r_rt ? $$r_rt : $$m_rt);
-    $$m_at = (defined $$r_at && length $$r_at ? $$r_at : $$m_at);
-    $$m_et = (defined $$r_et && length $$r_et ? $$r_et : $$m_et);
+      $$m_rt = (defined $$r_rt && length $$r_rt ? $$r_rt : $$m_rt);
+      $$m_at = (defined $$r_at && length $$r_at ? $$r_at : $$m_at);
                                              
     return (defined $response->{'data'}{'status'} ? $response->{'data'}{'status'} : 200);
 }
@@ -151,30 +138,35 @@ sub request {
     my ($this, $uri, $http_method, $post_data) = @_;
     my $obj_id = ident $this;
 
+    $post_data   ||= undef;
+    $http_method ||= 'GET';
+    $http_method   = lc($http_method);
+
     die("Error: you must provide a client id before making requests.\n")     
         unless (defined $m_vars{ $obj_id }{'client_id'} and length $m_vars{ $obj_id }{'client_id'});
-    
+
     my $response   = undef;
     my $request    = undef;
     my $end_point  = (defined $m_vars{ $obj_id }{'MASHAPE_KEY'} ? ENDPOINTS->{'MASHAPE'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
        $end_point  = ($uri =~ /^http(?:s)?/ ? $uri : $end_point);
-       $end_point .= '?_format=xml' if $this->get_format_type() eq 'xml';
-
-    $http_method ||= 'GET';
-    $http_method   = lc($http_method);
+       $end_point .= '?_format=' . ($this->get_format_type() eq 'xml' ? 'xml' : 'json');
+       $end_point .= "&_method=$http_method";
 
     # Reset the last response code
-    $this->{'last_response_code'} = undef;
+    $m_vars{ $obj_id }{'last_response_code'} = undef;
     
     if($http_method eq 'post') {
         $response = $m_vars{ $obj_id }{'lwp_user_agent'}->post($end_point, $post_data);
     }
-    elsif($http_method =~ m/^(?:get|delete)$/) {   
-
-        say "Endpoint: $end_point";
+    elsif($http_method =~ m/^(?:get|delete)$/) { 
+        if(scalar keys %$post_data) {
+            while(my ($key, $value) = each %$post_data) {
+                $end_point .= "&$key=$value";
+            }
+        }
 
         # Fire!
-        $request  = new HTTP::Request(GET => $end_point);
+        $request  = ($http_method eq 'get' ? new HTTP::Request(GET => $end_point) : new HTTP::Request(DELETE => $end_point));
         $response = $m_vars{ $obj_id }{'lwp_user_agent'}->request($request);
         
         $m_vars{ $obj_id }{'x_ratelimit_userlimit'}      = $response->{'_headers'}{'x-ratelimit-userlimit'};
@@ -185,7 +177,7 @@ sub request {
     }
     
     if(defined $response->{'_rc'} && $response->{'_rc'} =~ m/^(200|400|401|403|404|429|500)$/) {
-        $this->{'last_response_code'} = $1;
+        $m_vars{ $obj_id }{'last_response_code'} = $1;
     }
 
     print Dumper($response) unless ! $m_vars{ $obj_id }{'verbose_output'};
@@ -200,7 +192,7 @@ sub auth_ini {
     die("Error: you must give a path to your INI auth file.\n") unless defined $auth_ini;
     die("Error: $auth_ini doesn't exist.\n") unless -f $auth_ini;
 
-    $m_vars{ $obj_id }{'auth'}            = true;
+    $m_vars{ $obj_id }{'auth'}            = 1;
     $m_vars{ $obj_id }{'auth_ini'}        = Config::IniFiles->new(-file => $auth_ini);
     $m_vars{ $obj_id }{'client_id'}       = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'client_id');
     $m_vars{ $obj_id }{'client_secret'}   = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'client_secret');
@@ -212,13 +204,9 @@ sub auth_ini {
     my $dt = undef;
        $dt = DateTime::Format::ISO8601->parse_datetime($$et) unless !$$et;
 
-    if((!$$et) || 
-        ($$et && (defined $dt && DateTime->now() >= $dt))) {
-        say "Refreshing";
-
+    if((!$$et) || ($$et && (defined $dt && DateTime->now() >= $dt))) {
         if($this->refresh() != 200) {
-            $m_vars{ $obj_id }{'last_response_code'} = $this->authorize();
-
+               $m_vars{ $obj_id }{'last_response_code'} = $this->authorize();
             if($m_vars{ $obj_id }{'last_response_code'} == 200) {
                 $this->update_auth_ini();
             }
@@ -232,13 +220,13 @@ sub auth_ini {
 }
 
 sub update_auth_ini {
-    my $obj_id   = ident shift;
-    my $auth_ini = \$m_vars{ $obj_id }{'auth_ini'};
+    my $this = shift;
+    my $obj_id = ident $this;
 
-    $$auth_ini->setval('Credentials', 'access_token',    $m_vars{ $obj_id }{'access_token'});
-    $$auth_ini->setval('Credentials', 'refresh_token',   $m_vars{ $obj_id }{'refresh_token'});
-    $$auth_ini->setval('Credentials', 'expiration_time', $m_vars{ $obj_id }{'expiration_time'});
-    $$auth_ini->RewriteConfig();
+    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'access_token',    $m_vars{ $obj_id }{'access_token'});
+    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'refresh_token',   $m_vars{ $obj_id }{'refresh_token'});
+    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'expiration_time', $m_vars{ $obj_id }{'expiration_time'});
+    $m_vars{ $obj_id }{'auth_ini'}->RewriteConfig();
 }
 
 #-----------------------------------
@@ -251,7 +239,7 @@ sub set_auth_token      { $m_vars{ ident shift }{'auth_token'}      = shift; }
 sub set_auth_code       { $m_vars{ ident shift }{'auth_code'}       = shift; }
 sub set_refresh_token   { $m_vars{ ident shift }{'refresh_token'}   = shift; }
 sub set_expiration_time { $m_vars{ ident shift }{'expiration_time'} = shift; }
-sub set_no_auth         { $m_vars{ ident shift }{'auth'}            = false; }
+sub set_no_auth         { $m_vars{ ident shift }{'auth'}            = 0;     }
 sub set_verbose_output  { $m_vars{ ident shift }{'verbose_output'}  = shift; }
 sub set_client_id       { $m_vars{ ident shift }{'client_id'}       = shift;
     set_headers();
@@ -370,10 +358,27 @@ sub get_account_comment_count {
     return $this->request("/account/$username/comments/count");
 }
 
+sub change_account_settings {
+    my ($this, $username, $settings) = @_;
+    my %valid_setting_fields = map { $_ => 1 } ('bio', 'public_images', 'messaging_enabled', 'album_privacy', 'accepted_gallery_terms', 'username');
+    my $data = {};
+
+    die("Error: you must provide a hashref to the new account settings\n") unless $settings;
+
+    foreach my $key (keys %{ $settings }) {
+        $data->{ $key } = $settings->{ $key } unless ! exists($valid_setting_fields{ $key });
+    }
+
+    return $this->request("/account/$username/settings", 'POST', $data);
+}
+
+#--------------
+# Albums
+#--------------
+
 sub get_album {
-    my ($this, $album_id) = @_;
-    die("Error: invalid album id.\n") unless $album_id =~ /^(?:\d+)$/;
-    return $this->request("/album/$album_id");
+    my ($this, $id) = @_;
+    return $this->request("/album/$id");
 }
 
 sub get_album_images {
@@ -381,12 +386,21 @@ sub get_album_images {
     return $this->request("/album/$id/images");
 }
 
-#--------------
-# Albums
-#--------------
 sub album_create {
-    my ($this, $data) = @_;
-    print Dumper($data);
+    my ($this, $fields) = @_;
+    my %valid_album_keys = map { $_ => 1 } ('ids', 'title', 'description', 'privacy', 'layout', 'cover');
+    my $data = {};
+
+    print Dumper($fields);
+
+    say $fields;
+
+    die("Error: you must provide fields when creating an album\n") unless $fields;
+
+    foreach my $key (keys %{ $fields }) {
+        $data->{ $key } = $fields->{ $key } unless ! exists($valid_album_keys{ $key });
+    }
+
     return $this->request("/album", 'POST', $data);
 }
 
@@ -414,8 +428,9 @@ sub album_add_images {
     return $this->request("/album/$id/add", 'POST', $image_ids);
 }
 
-sub album_delete_images {
-    my ($this, $id, $image_ids) = @_;
+sub album_remove_images {
+    my ($this, $id, @image_ids) = @_;
+    return $this->request("/album/$id/remove_images", 'DELETE', {'ids' => join(',', @image_ids)});
 }
 
 #--------------
@@ -469,47 +484,49 @@ sub get_custom_gallery {
     return $this->request("/g/$id/$sort/$window/$page");
 }
 
-# TODO:
 sub get_user_galleries {
     my $this = shift;
-    return $this->request('/g');
+    return $this->request("/g");
 }
 
-# TODO:
 sub create_custom_gallery {
-    my ($this, $name, $tags) = @_;
-    $tags ||= '';
+    my ($this, $name, @tags) = @_;
+    return $this->request("/g", 'POST', { 'name' => $name });
 }
 
-# TODO:
 sub custom_gallery_update {
     my ($this, $id, $name) = @_;
-
+    return $this->request("/g/$id", 'POST', { 'id' => $id, 'name' => $name })
 }
 
 sub custom_gallery_add_tags {
-    my ($this, $id, $tags) = @_;
-
+    my ($this, $id, @tags) = @_;
+    return $this->request("/g/$id/add_tags", 'PUT', { 'tags' => join(',', @tags) });
 }
 
 sub custom_gallery_remove_tags {
-    my ($id, $tags) = @_;
+    my ($this, $id, @tags) = @_;
+    return $this->request("/g/$id/remove_tags", 'DELETE', { 'tags' => join(',', @tags) });
 }
 
 sub custom_gallery_delete {
     my ($this, $id) = @_;
+    return $this->request("/g/$id", 'DELETE');
 }
 
 sub filtered_out_tags {
     my $this = shift;
+    return $this->request("/g/filtered_out");
 }
 
 sub block_tag {
     my ($this, $tag) = @_;
+    return $this->request("/g/block_tag", 'POST', { 'tag' => $tag });
 }
 
 sub unblock_tag {
     my ($this, $tag) = @_;
+    return $this->request("/g/unblock_tag", 'POST', { 'tag' => $tag });
 }
 
 #--------------------
@@ -522,87 +539,136 @@ sub gallery {
     $page       ||= 0;
     $window     ||= 'day';
     $show_viral ||= 1;
+    return $this->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
 }
 
 sub memes_subgallery {
     my ($this, $sort, $page, $window) = @_;
-    $sort ||= 'viral';
+    $sort   ||= 'viral';
+    $page   ||= 0;
+    $window ||= 'week';
+    return $this->request(("/g/memes/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
 sub memes_subgallery_image {
     my ($this, $id) = @_;
+    return $this->request("/g/memes/$id");
 }
 
 sub subreddit_gallery {
     my ($this, $subreddit, $sort, $window, $page) = @_;
+    $sort   ||= 'time';
+    $window ||= 'week';
+    $page   ||= 0;
+    return $this->request(("/gallery/r/$subreddit/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
 sub subreddit_image {
     my ($this, $subreddit, $id) = @_;
+    return $this->request("/gallery/r/$subreddit/$id");
 }
 
 sub gallery_tag {
     my ($this, $tag, $sort, $page, $window) = @_;
+    $sort   ||= 'viral';
+    $page   ||= 0;
+    $window ||= 'week';
+    return $this->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
 sub gallery_tag_image {
-
+    my ($this, $tag, $id) = @_;
+    return $this->request("/gallery/t/$tag/$id");
 }
 
 sub gallery_item_tags {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id/tags");
 }
 
 sub gallery_tag_vote {
-
+    my ($this, $id, $tag, $vote) = @_;
+    return $this->response("/gallery/$id/vote/tag/$tag/$vote", 'POST');
 }
 
 sub gallery_search {
+    my ($this, $query, $fields, $sort, $window, $page) = @_;
+    $fields ||= {};
+    $sort   ||= 'time';
+    $window ||= 'all';
+    $page   ||= 0;
 
+    my $data = {};
+
+    if($fields) {
+        my %valid_search_keys = map { $_ => 1 } ('q_all', 'q_any', 'q_exactly', 'q_not', 'q_type', 'q_size_px');
+
+        foreach my $key (keys %{ $fields }) {
+            $data->{ $key } = $fields->{ $key } unless ! exists($valid_search_keys{ $key });
+        }
+    }
+    else {
+        $data->{'q'} = $query;
+    }
+
+    return $this->request("/gallery/search/$sort/$window/$page", 'GET', $data);
 }
 
 sub gallery_random {
-
+    my ($this, $page) = @_;
+    return $this->request("/gallery/random/random/$page");
 }
 
 sub share_on_imgur {
-
+    my ($this, $id, $title, $terms) = @_;
+    $terms ||= 0;
+    return $this->request("/gallery/$id", 'POST', { 'title' => $title, 'terms' => $terms });
 }
 
 sub remove_from_gallery {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id", 'DELETE');
 }
 
 sub gallery_item {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id");
 }
 
 sub report_gallery_item {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id/report", 'POST');
 }
 
 sub gallery_item_vote {
-
+    my ($this, $id, $vote) = @_;
+    $vote ||= 'up';
+    return $this->request("/gallery/$id/vote/$vote", 'POST');
 }
 
 sub gallery_item_comments {
-
+    my ($this, $id, $sort) = @_;
+    $sort ||= 'best';
+    return $this->request("/gallery/$id/comments/$sort");
 }
 
 sub gallery_comment {
-
+    my ($this, $id, $comment) = @_;
+    return $this->request("/gallery/$id/comment", 'POST', { 'comment' => $comment });
 }
 
 sub gallery_comment_ids {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id/comments/ids");
 } 
 
 sub gallery_comment_count {
-
+    my ($this, $id) = @_;
+    return $this->request("/gallery/$id/comments/count");
 }
 
 #--------------------
-# Image
+# Images
 #--------------------
 sub get_image {
     my ($this, $id) = @_;
@@ -610,35 +676,74 @@ sub get_image {
 }
 
 sub upload_from_path {
-    my ($this, $path, $config, $anon) = @_;
+    my ($this, $path, $fields, $anon) = @_;
+    $fields ||= {};
+    $anon   ||= 0;
+
+    my $image_data = read_file($path);
+    my $data       = {
+        'image' => encode_base64($image_data),
+        'type'  => 'base64'
+    };
+
+    if($fields) {
+        my %valid_image_keys = map { $_ => 1 } ('album', 'name', 'title', 'description');
+
+        foreach my $key (keys %{ $fields }) {
+            $data->{ $key } = $fields->{ $key } unless ! exists($valid_image_keys{ $key });
+        }
+    }
+
+    return $this->request("/upload", 'POST', $data);
 }
 
 sub upload_from_url {
-    my ($this, $url, $config, $anon) = @_;
+    my ($this, $url, $fields, $anon) = @_;
+    $fields ||= {};
+    $anon   ||= 0;
+
+    my $data = {
+        'image' => $url,
+        'type'  => 'url'
+    };
+
+    if($fields) {
+        my %valid_image_keys = map { $_ => 1 } ('album', 'name', 'title', 'description');
+
+        foreach my $key (keys %{ $fields }) {
+            $data->{ $key } = $fields->{ $key } unless ! exists($valid_image_keys{ $key });
+        }
+
+        print Dumper($data);
+    }
+
+    return $this->request("/upload", 'POST', $data);
 }
 
 sub delete_image {
     my ($this, $id) = @_;
-
+    return $this->request("/image/$id", 'DELETE');
 }
 
 sub favorite_image {
     my ($this, $id) = @_;
+    return $this->request("/image/$id/favorite", 'POST');
 }
 
 #--------------------
-# Conversation
+# Conversations
 #--------------------
 
 sub conversation_list {
     my $this = shift;
-    return $this->request('/conversations');
+    return $this->request("/conversations");
 }
 
 sub get_conversation {
     my ($this, $id, $page, $offset) = @_;
     $page   ||= 0;
     $offset ||= 0;
+    return $this->request("/conversations/$id/$page/$offset");
 }
 
 sub create_message {
@@ -662,30 +767,30 @@ sub block_sender {
 }
 
 #--------------------
-# Notification
+# Notifications
 #--------------------
 sub get_notifications {
     my ($this, $new) = @_;
-    $new ||= true;
-    #return $this->request("/account/$username/notifications");
+    $new ||= 1;
+    return $this->request("/notification", 'GET', { 'new' => $new });
 }
 
 sub get_notification {
     my ($this, $id) = @_;
-
+    return $this->request("/notification/$id");
 }
 
 sub mark_notifications_as_read {
-    my ($this, $ids) = @_;
-
+    my ($this, @ids) = @_;
+    return $this->request("/notification", 'POST', { 'ids' => join(',', @ids) });
 }
 
 #--------------------
 # Memegen
 #--------------------
-sub get_meme_metadata {
+sub get_default_memes {
     my $this = shift;
-    return $this->request("/g");
+    return $this->request("/memegen/defaults");
 }
 
 1;
