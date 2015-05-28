@@ -23,7 +23,7 @@ Coming soon...
 
 ## Examples
 
-Can be found [here][1].
+Can be found [here](https://github.com/selftaught/ImgurAPI/examples).
 
 ## Imgur Specific Subroutines
 
@@ -153,5 +153,4 @@ Can be found [here][1].
  - `set_expiration_datetime(datetime)`
  - `set_no_auth()`
  
- [here][1]:https://github.com/selftaught/ImgurAPI/examples
 
