@@ -391,10 +391,6 @@ sub album_create {
     my %valid_album_keys = map { $_ => 1 } ('ids', 'title', 'description', 'privacy', 'layout', 'cover');
     my $data = {};
 
-    print Dumper($fields);
-
-    say $fields;
-
     die("Error: you must provide fields when creating an album\n") unless $fields;
 
     foreach my $key (keys %{ $fields }) {
@@ -699,6 +695,7 @@ sub upload_from_path {
 
 sub upload_from_url {
     my ($this, $url, $fields, $anon) = @_;
+
     $fields ||= {};
     $anon   ||= 0;
 
@@ -713,8 +710,6 @@ sub upload_from_url {
         foreach my $key (keys %{ $fields }) {
             $data->{ $key } = $fields->{ $key } unless ! exists($valid_image_keys{ $key });
         }
-
-        print Dumper($data);
     }
 
     return $this->request("/upload", 'POST', $data);
