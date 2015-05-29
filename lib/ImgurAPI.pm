@@ -15,8 +15,8 @@ use MIME::Base64;
 use File::Slurp;
 
 BEGIN {
-    # Set PERL_LWP_SSL_VERIFY_HOSTNAME to 0 or
-    # request to Imgur's API will return SSL ERRORS
+    # Set PERL_LWP_SSL_VERIFY_HOSTNAME to 0, otherwise
+    # requests to Imgur's API will return SSL ERRORS
     $ENV{'PERL_LWP_SSL_VERIFY_HOSTNAME'} = 0;
 }
 
@@ -29,8 +29,9 @@ use constant ENDPOINTS => {
     'OAUTH_SECRET'    => 'https://api.imgur.com/oauth2/secret'
 };
 
-# Hash which all member variables will be stored in
-my %m_vars;
+# Hash ref that we'll use to store and encapsulate 
+# member variables.
+my $m_vars;
 
 #-----------------------------------
 # Constructor
@@ -39,17 +40,19 @@ sub new {
     my $this   = bless {}, shift;
     my $obj_id = ident $this;
 
-    $m_vars{ $obj_id }{'auth'}               = 1;
-    $m_vars{ $obj_id }{'client_id'}          = shift;
-    $m_vars{ $obj_id }{'client_secret'}      = shift;
-    $m_vars{ $obj_id }{'refresh_token'}      = shift;
-    $m_vars{ $obj_id }{'expiration_time'}    = '';
-    $m_vars{ $obj_id }{'format_type'}        = 'json';
-    $m_vars{ $obj_id }{'response_type'}      = 'pin';
-    $m_vars{ $obj_id }{'lwp_user_agent'}     = new LWP::UserAgent;
-    $m_vars{ $obj_id }{'last_response_code'} = 0;
-    $m_vars{ $obj_id }{'full_responses'}     = 1;
-    $m_vars{ $obj_id }{'verbose_output'}     = 0;
+    $m_vars->{ $obj_id } = {
+        'auth'               => 1,
+        'client_id'          => shift,
+        'client_secret'      => shift,
+        'refresh_token'      => shift,
+        'expiration_time'    => '',
+        'format_type'        => 'json',
+        'response_type'      => 'pin',
+        'lwp_user_agent'     => new LWP::UserAgent,
+        'last_response_code' => 0,
+        'full_responses'     => 1,
+        'verbose_output'     => 0
+    };
 
     # Default headers
     $this->set_headers();
@@ -64,14 +67,14 @@ sub authorize {
     my $this          = shift;
     my $obj_id        = ident $this;
     my $response      = undef;
-    my $response_type = \$m_vars{ $obj_id }{'response_type'};
+    my $response_type = \$m_vars->{ $obj_id }{'response_type'};
 
     if(lc($$response_type) eq 'pin') {
         my $content = {
-            'client_id'     => $m_vars{ $obj_id }{'client_id'},
-            'client_secret' => $m_vars{ $obj_id }{'client_secret'},
+            'client_id'     => $m_vars->{ $obj_id }{'client_id'},
+            'client_secret' => $m_vars->{ $obj_id }{'client_secret'},
             'grant_type'    => 'pin',
-            'pin'           => $m_vars{ $obj_id }{'auth_pin'}
+            'pin'           => $m_vars->{ $obj_id }{'auth_pin'}
         };
 
         $response = decode_json('', $content, 'POST');
@@ -80,22 +83,22 @@ sub authorize {
     if(defined $response->{'data'}{'error'}) {
         return $response->{'status'} unless $response->{'status'} == 400;
         
-        die("Error: you must provide a refresh_token.\n")    unless length $m_vars{ $obj_id }{'refresh_token'};
-        die("Error: refresh_token must be 40 characters.\n") unless length $m_vars{ $obj_id }{'refresh_token'} == 40;
+        die("Error: you must provide a refresh_token.\n")    unless length $m_vars->{ $obj_id }{'refresh_token'};
+        die("Error: refresh_token must be 40 characters.\n") unless length $m_vars->{ $obj_id }{'refresh_token'} == 40;
         
         return $this->refresh();
     }
 
     return 0 if not defined $response->{'access_token'};
 
-    $m_vars{ $obj_id }{'access_token'}    = $response->{'access_token'};
-    $m_vars{ $obj_id }{'refresh_token'}   = $response->{'refresh_token'}; 
-    $m_vars{ $obj_id }{'expiration_time'} = DateTime->now;
-    $m_vars{ $obj_id }{'expiration_time'}->add( hours => 1);
+    $m_vars->{ $obj_id }{'access_token'}    = $response->{'access_token'};
+    $m_vars->{ $obj_id }{'refresh_token'}   = $response->{'refresh_token'}; 
+    $m_vars->{ $obj_id }{'expiration_time'} = DateTime->now;
+    $m_vars->{ $obj_id }{'expiration_time'}->add( hours => 1);
 
     $this->set_headers();
 
-    print Dumper($response) unless ! $m_vars{ $obj_id }{'verbose_output'};
+    print Dumper($response) unless ! $m_vars->{ $obj_id }{'verbose_output'};
 
     return 200;
 }
@@ -107,9 +110,9 @@ sub refresh {
     my $this      = shift;
     my $obj_id    = ident $this;
     my $post_data = {
-        'refresh_token' => $m_vars{ $obj_id }{'refresh_token'},
-        'client_id'     => $m_vars{ $obj_id }{'client_id'},
-        'client_secret' => $m_vars{ $obj_id }{'client_secret'},
+        'refresh_token' => $m_vars->{ $obj_id }{'refresh_token'},
+        'client_id'     => $m_vars->{ $obj_id }{'client_id'},
+        'client_secret' => $m_vars->{ $obj_id }{'client_secret'},
         'grant_type'    => 'refresh_token'
     };
 
@@ -117,11 +120,11 @@ sub refresh {
        $response = decode_json($response) if length $response;
 
 
-    $m_vars{ $obj_id }{'expiration_time'} = DateTime->now;
-    $m_vars{ $obj_id }{'expiration_time'}->add( hours => 1 );
+    $m_vars->{ $obj_id }{'expiration_time'} = DateTime->now;
+    $m_vars->{ $obj_id }{'expiration_time'}->add( hours => 1 );
 
-    my $m_rt = \$m_vars{ $obj_id }{'refresh_token'};
-    my $m_at = \$m_vars{ $obj_id }{'access_token'};
+    my $m_rt = \$m_vars->{ $obj_id }{'refresh_token'};
+    my $m_at = \$m_vars->{ $obj_id }{'access_token'};
     my $r_rt = \$response->{'refresh_token'};
     my $r_at = \$response->{'access_token'};
       $$m_rt = (defined $$r_rt && length $$r_rt ? $$r_rt : $$m_rt);
@@ -142,20 +145,20 @@ sub request {
     $http_method   = lc($http_method);
 
     die("Error: you must provide a client id before making requests.\n")     
-        unless (defined $m_vars{ $obj_id }{'client_id'} and length $m_vars{ $obj_id }{'client_id'});
+        unless (defined $m_vars->{ $obj_id }{'client_id'} and length $m_vars->{ $obj_id }{'client_id'});
 
     my $response   = undef;
     my $request    = undef;
-    my $end_point  = (defined $m_vars{ $obj_id }{'MASHAPE_KEY'} ? ENDPOINTS->{'MASHAPE'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
+    my $end_point  = (defined $m_vars->{ $obj_id }{'MASHAPE_KEY'} ? ENDPOINTS->{'MASHAPE'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
        $end_point  = ($uri =~ /^http(?:s)?/ ? $uri : $end_point);
        $end_point .= '?_format=' . ($this->get_format_type() eq 'xml' ? 'xml' : 'json');
        $end_point .= "&_method=$http_method";
 
     # Reset the last response code
-    $m_vars{ $obj_id }{'last_response_code'} = undef;
+    $m_vars->{ $obj_id }{'last_response_code'} = undef;
     
     if($http_method eq 'post') {
-        $response = $m_vars{ $obj_id }{'lwp_user_agent'}->post($end_point, $post_data);
+        $response = $m_vars->{ $obj_id }{'lwp_user_agent'}->post($end_point, $post_data);
     }
     elsif($http_method =~ m/^(?:get|delete)$/) { 
         if(scalar keys %$post_data) {
@@ -166,22 +169,22 @@ sub request {
 
         # Fire!
         $request  = ($http_method eq 'get' ? new HTTP::Request(GET => $end_point) : new HTTP::Request(DELETE => $end_point));
-        $response = $m_vars{ $obj_id }{'lwp_user_agent'}->request($request);
+        $response = $m_vars->{ $obj_id }{'lwp_user_agent'}->request($request);
         
-        $m_vars{ $obj_id }{'x_ratelimit_userlimit'}      = $response->{'_headers'}{'x-ratelimit-userlimit'};
-        $m_vars{ $obj_id }{'x_ratelimit_userremaining'}  = $response->{'_headers'}{'x-ratelimit-userremaining'};
-        $m_vars{ $obj_id }{'x_ratelimit_userreset'}      = $response->{'_headers'}{'x-ratelimit-userreset'};
-        $m_vars{ $obj_id }{'x_ratelimit_clientlimit'}    = $response->{'_headers'}{'x-ratelimit-clientlimit'};
-        $m_vars{ $obj_id }{'x_ratelimit_lientremaining'} = $response->{'_headers'}{'x-ratelimit-clientremaining'};
+        $m_vars->{ $obj_id }{'x_ratelimit_userlimit'}      = $response->{'_headers'}{'x-ratelimit-userlimit'};
+        $m_vars->{ $obj_id }{'x_ratelimit_userremaining'}  = $response->{'_headers'}{'x-ratelimit-userremaining'};
+        $m_vars->{ $obj_id }{'x_ratelimit_userreset'}      = $response->{'_headers'}{'x-ratelimit-userreset'};
+        $m_vars->{ $obj_id }{'x_ratelimit_clientlimit'}    = $response->{'_headers'}{'x-ratelimit-clientlimit'};
+        $m_vars->{ $obj_id }{'x_ratelimit_lientremaining'} = $response->{'_headers'}{'x-ratelimit-clientremaining'};
     }
     
     if(defined $response->{'_rc'} && $response->{'_rc'} =~ m/^(200|400|401|403|404|429|500)$/) {
-        $m_vars{ $obj_id }{'last_response_code'} = $1;
+        $m_vars->{ $obj_id }{'last_response_code'} = $1;
     }
 
-    print Dumper($response) unless ! $m_vars{ $obj_id }{'verbose_output'};
+    print Dumper($response) unless ! $m_vars->{ $obj_id }{'verbose_output'};
     
-    return ($m_vars{ $obj_id }{'full_response'} ? $response : $response->{'_content'});
+    return ($m_vars->{ $obj_id }{'full_response'} ? $response : $response->{'_content'});
 }
 
 sub auth_ini {
@@ -191,22 +194,22 @@ sub auth_ini {
     die("Error: you must give a path to your INI auth file.\n") unless defined $auth_ini;
     die("Error: $auth_ini doesn't exist.\n") unless -f $auth_ini;
 
-    $m_vars{ $obj_id }{'auth'}            = 1;
-    $m_vars{ $obj_id }{'auth_ini'}        = Config::IniFiles->new(-file => $auth_ini);
-    $m_vars{ $obj_id }{'client_id'}       = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'client_id');
-    $m_vars{ $obj_id }{'client_secret'}   = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'client_secret');
-    $m_vars{ $obj_id }{'access_token'}    = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'access_token');
-    $m_vars{ $obj_id }{'refresh_token'}   = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'refresh_token');
-    $m_vars{ $obj_id }{'expiration_time'} = $m_vars{ $obj_id }{'auth_ini'}->val('Credentials', 'expiration_time');
+    $m_vars->{ $obj_id }{'auth'}            = 1;
+    $m_vars->{ $obj_id }{'auth_ini'}        = Config::IniFiles->new(-file => $auth_ini);
+    $m_vars->{ $obj_id }{'client_id'}       = $m_vars->{ $obj_id }{'auth_ini'}->val('Credentials', 'client_id');
+    $m_vars->{ $obj_id }{'client_secret'}   = $m_vars->{ $obj_id }{'auth_ini'}->val('Credentials', 'client_secret');
+    $m_vars->{ $obj_id }{'access_token'}    = $m_vars->{ $obj_id }{'auth_ini'}->val('Credentials', 'access_token');
+    $m_vars->{ $obj_id }{'refresh_token'}   = $m_vars->{ $obj_id }{'auth_ini'}->val('Credentials', 'refresh_token');
+    $m_vars->{ $obj_id }{'expiration_time'} = $m_vars->{ $obj_id }{'auth_ini'}->val('Credentials', 'expiration_time');
 
-    my $et = \$m_vars{ $obj_id }{'expiration_time'};
+    my $et = \$m_vars->{ $obj_id }{'expiration_time'};
     my $dt = undef;
        $dt = DateTime::Format::ISO8601->parse_datetime($$et) unless !$$et;
 
     if((!$$et) || ($$et && (defined $dt && DateTime->now() >= $dt))) {
         if($this->refresh() != 200) {
-               $m_vars{ $obj_id }{'last_response_code'} = $this->authorize();
-            if($m_vars{ $obj_id }{'last_response_code'} == 200) {
+               $m_vars->{ $obj_id }{'last_response_code'} = $this->authorize();
+            if($m_vars->{ $obj_id }{'last_response_code'} == 200) {
                 $this->update_auth_ini();
             }
         }
@@ -222,34 +225,34 @@ sub update_auth_ini {
     my $this = shift;
     my $obj_id = ident $this;
 
-    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'access_token',    $m_vars{ $obj_id }{'access_token'});
-    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'refresh_token',   $m_vars{ $obj_id }{'refresh_token'});
-    $m_vars{ $obj_id }{'auth_ini'}->setval('Credentials', 'expiration_time', $m_vars{ $obj_id }{'expiration_time'});
-    $m_vars{ $obj_id }{'auth_ini'}->RewriteConfig();
+    $m_vars->{ $obj_id }{'auth_ini'}->setval('Credentials', 'access_token',    $m_vars->{ $obj_id }{'access_token'});
+    $m_vars->{ $obj_id }{'auth_ini'}->setval('Credentials', 'refresh_token',   $m_vars->{ $obj_id }{'refresh_token'});
+    $m_vars->{ $obj_id }{'auth_ini'}->setval('Credentials', 'expiration_time', $m_vars->{ $obj_id }{'expiration_time'});
+    $m_vars->{ $obj_id }{'auth_ini'}->RewriteConfig();
 }
 
 #-----------------------------------
 # Setters
 #-----------------------------------
-sub set_format_type     { $m_vars{ ident shift }{'format_type'}     = shift; }
-sub set_state           { $m_vars{ ident shift }{'state'}           = shift; }
-sub set_auth_pin        { $m_vars{ ident shift }{'auth_pin'}        = shift; }
-sub set_auth_token      { $m_vars{ ident shift }{'auth_token'}      = shift; }
-sub set_auth_code       { $m_vars{ ident shift }{'auth_code'}       = shift; }
-sub set_refresh_token   { $m_vars{ ident shift }{'refresh_token'}   = shift; }
-sub set_expiration_time { $m_vars{ ident shift }{'expiration_time'} = shift; }
-sub set_no_auth         { $m_vars{ ident shift }{'auth'}            = 0;     }
-sub set_verbose_output  { $m_vars{ ident shift }{'verbose_output'}  = shift; }
-sub set_client_id       { $m_vars{ ident shift }{'client_id'}       = shift;
+sub set_format_type     { $m_vars->{ ident shift }{'format_type'}     = shift; }
+sub set_state           { $m_vars->{ ident shift }{'state'}           = shift; }
+sub set_auth_pin        { $m_vars->{ ident shift }{'auth_pin'}        = shift; }
+sub set_auth_token      { $m_vars->{ ident shift }{'auth_token'}      = shift; }
+sub set_auth_code       { $m_vars->{ ident shift }{'auth_code'}       = shift; }
+sub set_refresh_token   { $m_vars->{ ident shift }{'refresh_token'}   = shift; }
+sub set_expiration_time { $m_vars->{ ident shift }{'expiration_time'} = shift; }
+sub set_no_auth         { $m_vars->{ ident shift }{'auth'}            = 0;     }
+sub set_verbose_output  { $m_vars->{ ident shift }{'verbose_output'}  = shift; }
+sub set_client_id       { $m_vars->{ ident shift }{'client_id'}       = shift;
     set_headers();
 }
 
 sub set_headers {
     my $obj_id         = ident shift;
-    my $lwp_user_agent = \$m_vars{ $obj_id }{'lwp_user_agent'};
-    my $client_id      = \$m_vars{ $obj_id }{'client_id'};
-    my $access_token   = \$m_vars{ $obj_id }{'access_token'};
-    my $auth           = \$m_vars{ $obj_id }{'auth'};
+    my $lwp_user_agent = \$m_vars->{ $obj_id }{'lwp_user_agent'};
+    my $client_id      = \$m_vars->{ $obj_id }{'client_id'};
+    my $access_token   = \$m_vars->{ $obj_id }{'access_token'};
+    my $auth           = \$m_vars->{ $obj_id }{'auth'};
 
     $$lwp_user_agent->default_header('Authorization' => "Client-ID $$client_id") unless ! defined $$client_id;
     $$lwp_user_agent->default_header('Authorization' => "Bearer $$access_token") unless ! $$auth || ! $$access_token;
@@ -261,26 +264,26 @@ sub set_headers {
 
 sub get_auth_url {
     my $obj_id        = ident shift;
-    my $client_id     = \$m_vars{ $obj_id }{'client_id'};
-    my $response_type = \$m_vars{ $obj_id }{'response_type'};
+    my $client_id     = \$m_vars->{ $obj_id }{'client_id'};
+    my $response_type = \$m_vars->{ $obj_id }{'response_type'};
 
     return (ENDPOINTS->{'OAUTH_AUTHORIZE'} . "?client_id=$$client_id&response_type=$$response_type");
 }
 
-sub get_auth_pin                    { return $m_vars{ ident shift }{'auth_pin'};                    }
-sub get_auth_code                   { return $m_vars{ ident shift }{'auth_code'};                   }
-sub get_auth_token                  { return $m_vars{ ident shift }{'auth_token'};                  } 
-sub get_format_type                 { return $m_vars{ ident shift }{'format_type'}                  }
-sub get_response_code               { return $m_vars{ ident shift }{'last_response_code'};          }
-sub get_response_type               { return $m_vars{ ident shift }{'response_type'};               }
-sub get_access_token                { return $m_vars{ ident shift }{'access_token'};                }
-sub get_refresh_token               { return $m_vars{ ident shift }{'refresh_token'};               }
-sub get_expiration_time             { return $m_vars{ ident shift }{'expiration_time'};             }
-sub get_x_ratelimit_userlimit       { return $m_vars{ ident shift }{'x_ratelimit_userlimit'};       }
-sub get_x_ratelimit_userremaining   { return $m_vars{ ident shift }{'x_ratelimit_userremaining'};   }
-sub get_x_ratelimit_userreset       { return $m_vars{ ident shift }{'x_ratelimit_userreset'};       }
-sub get_x_ratelimit_clientlimit     { return $m_vars{ ident shift }{'x_ratelimit_clientlimit'};     } 
-sub get_x_ratelimit_clientremaining { return $m_vars{ ident shift }{'x_ratelimit_clientremaining'}; }
+sub get_auth_pin                    { return $m_vars->{ ident shift }{'auth_pin'};                    }
+sub get_auth_code                   { return $m_vars->{ ident shift }{'auth_code'};                   }
+sub get_auth_token                  { return $m_vars->{ ident shift }{'auth_token'};                  } 
+sub get_format_type                 { return $m_vars->{ ident shift }{'format_type'}                  }
+sub get_response_code               { return $m_vars->{ ident shift }{'last_response_code'};          }
+sub get_response_type               { return $m_vars->{ ident shift }{'response_type'};               }
+sub get_access_token                { return $m_vars->{ ident shift }{'access_token'};                }
+sub get_refresh_token               { return $m_vars->{ ident shift }{'refresh_token'};               }
+sub get_expiration_time             { return $m_vars->{ ident shift }{'expiration_time'};             }
+sub get_x_ratelimit_userlimit       { return $m_vars->{ ident shift }{'x_ratelimit_userlimit'};       }
+sub get_x_ratelimit_userremaining   { return $m_vars->{ ident shift }{'x_ratelimit_userremaining'};   }
+sub get_x_ratelimit_userreset       { return $m_vars->{ ident shift }{'x_ratelimit_userreset'};       }
+sub get_x_ratelimit_clientlimit     { return $m_vars->{ ident shift }{'x_ratelimit_clientlimit'};     } 
+sub get_x_ratelimit_clientremaining { return $m_vars->{ ident shift }{'x_ratelimit_clientremaining'}; }
 
 #-----------------------------------
 # Account

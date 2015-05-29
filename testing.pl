@@ -27,7 +27,7 @@ $ImgurAPI->auth_ini('/Users/Dillan/Development/Perl/ImgurAPI/examples/auth.ini')
 #print Dumper($json->decode($ImgurAPI->gallery()));
 #print Dumper($json->decode($ImgurAPI->memes_subgallery()));
 #print Dumper($json->decode($ImgurAPI->subreddit_gallery('subreddit')));
-#print Dumper($json->decode($ImgurAPI->gallery_tag('awesome')));
+print Dumper($json->decode($ImgurAPI->gallery_tag('awesome')));
 #print Dumper($json->decode($ImgurAPI->album_delete('q9bJ9')));
 
 =pod
