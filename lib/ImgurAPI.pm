@@ -3,6 +3,7 @@ package ImgurAPI;
 
 use v5.010;
 use strict;
+use warnings;
 use JSON qw( decode_json );
 use LWP::UserAgent;
 use HTTP::Request::Common;
