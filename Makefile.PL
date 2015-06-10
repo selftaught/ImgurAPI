@@ -18,6 +18,7 @@ WriteMakefile(
 		'Scalar::Util'              => 1.42,
 		'Class::Std::Utils'         => 0.0.3,
 		'MIME::Base64'              => 3.15,
-		'File::Slurp'               => 9999.19
+		'File::Slurp'               => 9999.19,
+        'HTTP::Daemon'              => 
 	}
 );

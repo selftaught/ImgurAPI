@@ -25,6 +25,10 @@ Coming soon...
 
 Can be found [here](https://github.com/selftaught/ImgurAPI/examples).
 
+## Threading
+
+This module is currently NOT thread safe.
+
 ## Imgur Specific Subroutines
 
 ### Account
