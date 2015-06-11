@@ -9,4 +9,7 @@ my $harness = TAP::Harness->new({
     'lib'       => ['lib', 'blib/lib', 'blib/arch']
 });
 
-$harness->runtests("t/modules.t");
+$harness->runtests([
+    't/modules.t',
+    't/auth.t'
+]);
