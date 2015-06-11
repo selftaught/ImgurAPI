@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-package MockupServer;
+package ImgurAPI::MockupServer;
 
 use strict;
 use warnings;
