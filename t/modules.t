@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More;
+use Test::More tests => 11;
 
 BEGIN {
     use_ok('ImgurAPI');
@@ -16,5 +16,4 @@ BEGIN {
     use_ok('Class::Std::Utils');
     use_ok('MIME::Base64');
     use_ok('File::Slurp');
-    use_ok('HTTP::Daemon');
 }

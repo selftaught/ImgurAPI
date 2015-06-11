@@ -146,7 +146,9 @@ sub request {
     $http_method   = lc($http_method);
 
     die("Error: you must provide a client id before making requests.\n")     
-        unless (defined $m_vars->{ $obj_id }{'client_id'} and length $m_vars->{ $obj_id }{'client_id'});
+        unless (defined $m_vars->{ $obj_id }{'client_id'} and 
+                 length $m_vars->{ $obj_id }{'client_id'} or
+                defined $m_vars->{ $obj_id }{'unit_testing'});
 
     my $response   = undef;
     my $request    = undef;
@@ -235,6 +237,7 @@ sub update_auth_ini {
 #-----------------------------------
 # Setters
 #-----------------------------------
+sub set_unit_testing    { $m_vars->{ ident shift }{'unit_testing'}    = 1;     }
 sub set_format_type     { $m_vars->{ ident shift }{'format_type'}     = shift; }
 sub set_state           { $m_vars->{ ident shift }{'state'}           = shift; }
 sub set_auth_pin        { $m_vars->{ ident shift }{'auth_pin'}        = shift; }
@@ -244,8 +247,11 @@ sub set_refresh_token   { $m_vars->{ ident shift }{'refresh_token'}   = shift; }
 sub set_expiration_time { $m_vars->{ ident shift }{'expiration_time'} = shift; }
 sub set_no_auth         { $m_vars->{ ident shift }{'auth'}            = 0;     }
 sub set_verbose_output  { $m_vars->{ ident shift }{'verbose_output'}  = shift; }
-sub set_client_id       { $m_vars->{ ident shift }{'client_id'}       = shift;
-    set_headers();
+
+sub set_client_id       { 
+    my $this = shift;
+    $m_vars->{ ident $this }{'client_id'} = shift;
+    $this->set_headers();
 }
 
 sub set_headers {

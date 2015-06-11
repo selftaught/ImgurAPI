@@ -1,0 +1,12 @@
+CHANGES.md
+install.sh
+lib/ImgurAPI.pm
+LICENSE.txt
+Makefile
+Makefile.PL
+MANIFEST			This list of files
+MANIFEST.skip
+MYMETA.json
+MYMETA.yml
+README.md
+t/modules.t
