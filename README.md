@@ -1,5 +1,3 @@
-## NOTE: THIS MODULE IS NOT YET COMPLETE!
-
 ## ImgurAPI
 
 ImgurAPI is a module which wraps around and abstracts Imgur's API using Perl5. 
