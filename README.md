@@ -1,158 +1,177 @@
-## ImgurAPI
+# ImgurAPI perl library
 
-ImgurAPI is a module which wraps around and abstracts Imgur's API using Perl5. 
+ImgurAPI is a perl5 client library for interfacing with Imgur's API endpoints.
 
 ## Installation
 
-### Manual 
+1. Clone the repository `git clone https://github.com/selftaught/ImgurAPI.git`
+2. Cd into the repo root and generate a makefile: `perl Makefile.pl`
+3. Make it: `make && make test && make install`
 
-1. Download the zip archive: `wget https://github.com/selftaught/ImgurAPI/archive/master.zip`
-2. Unzip it: `unzip master.zip`
-3. Run Makefile.pl to create a makefile: `perl Makefile.pl`
-4. Make it: `make && make test && make install`
+## Usage
 
-### Install script
+### Instantiating the client
 
-Coming soon...
+```perl
+my $client = ImgurAPI->new( \%options );
+```
 
-### CPAN
+Valid options are:
 
-Coming soon... 
+_note that all are optional but the library will throw if its needed and not defined_
 
-## Examples
+- `client_id`
+- `client_secret`
+- `access_key`
+- `mashape_key`
+  - commercial rapidapi api key
+- `format_type`
+  - api endpoint response format type
+  - valid values are `json` (default) and `xml`
+- `oauth_state`
+  - parameter appended to oauth2 authorization url returned from `get_oauth2_url()` which may be useful to your application upon receipt of the response.
 
-Can be found [here](https://github.com/selftaught/ImgurAPI/examples).
+### Authorization
 
-## Threading
+If you haven't already, register an application for an OAuth2 client ID and secret [here](https://api.imgur.com/oauth2/addclient).
 
-This module is currently NOT thread safe.
+You will need to authorize your OAuth2 application if you haven't already done so. You can get the authorization URL with `get_oauth2_url`:
 
-## Imgur Specific Subroutines
+```perl
+my $auth_url = $client->get_oauth2_url();
+
+# return to user's browser for manual authorization
+```
+
+Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your client calling code on the backend can pull the access token from and then pass it to the client.
+
+```perl
+my $access_token = get_access_token_from_some_db();
+
+$client->set_access_token($access_token);
+```
+
+The client library doesn't handle refreshing the access token for you automatically. It is left up to the calling code to refresh the access token when it expires. This is so you can keep the refresh token updated in the database you stored it in initially. The client library is unaware of the database so we leave it up to you to manage.
+
+### Requests
+
+## Imgur API endpoint subroutines
 
 ### Account
 
-- `get_account(username)`
-- `get_gallery_favorites(username)`
-- `get_account_favorites(username)`
-- `get_account_submissions(username, page=0)`
-- `get_account_settings(username)`
-- `get_email_verification_status(username)`
-- `send_verification_email(username)`
-- `get_account_albums(username, page=0)`
-- `get_account_album_ids(username, page=0)`
-- `get_account_album_count(username)`
-- `get_account_comments(username, sort='newest', page=0)`
-- `get_account_comment_ids(username, sort='newest', page=0)`
-- `get_account_comment_count(username)`
-- `get_account_images(username, page=0)`
-- `get_account_image_ids(username, page=0)`
-- `get_account_album_count(username)`
-- `change_account_settings(username, fields)`
+- `account(username)`
+- `account_block_status(username)`
+- `account_blocks(username)`
+- `account_block_create(username)`
+- `account_delete(client_id, body)`
+- `account_follow_tag(tag_name)`
+- `account_unfollow_tag(tag_name)`
+- `account_images(username='me')`
+- `account_gallery_favorites(username, page, sort)`
+- `account_favorites(username)`
+- `account_submissions(username, page)`
+- `account_settings(username)`
+- `account_verify_email_status(username)`
+- `account_verify_email_send(username)`
+- `account_albums(username, page)`
+- `account_album_ids(username, page)`
+- `account_album_count(username)`
+- `account_comment(username, id)`
+- `account_comments(username, sort, page)`
+- `account_comment_ids(username, sort, page)`
+- `account_comment_count(username)`
+- `account_comment_delete(username, id)`
+- `account_images(username, page)`
+- `account_image(username, id)`
+- `account_image_ids(username, page)`
+- `account_album_count(username)`
+- `account_reply_notifications(username, new)`
+- `account_settings_update(username, fields)`
 
 ### Album
 
-- `get_album(album_id)`
-- `get_album_images(album_id)`
-- `create_album(fields)`
-- `update_album(album_id, fields)`
+- `album(album_id)`
+- `album_images(album_id)`
+- `album_create(fields)`
+- `album_update(album_id, fields)`
 - `album_delete(album_id)`
 - `album_favorite(album_id)`
 - `album_set_images(album_id, ids)`
 - `album_add_images(album_id, ids)`
-- `album_remove_images(album_id, ids)`
+- `album_delete_images(album_id, ids)`
 
 ### Comment
 
-- `get_comment(comment_id)`
-- `delete_comment(comment_id)`
-- `get_comment_replies(comment_id)`
-- `post_comment_reply(comment_id, image_id, comment)`
+- `comment(comment_id)`
+- `comment_delete(comment_id)`
+- `comment_replies(comment_id)`
+- `comment_reply(comment_id, image_id, comment)`
 - `comment_vote(comment_id, vote='up')`
 - `comment_report(comment_id)`
 
-### Custom Gallery
-
-- `get_custom_gallery(gallery_id, sort='viral', window='week', page=0)`
-- `get_user_galleries()`
-- `create_custom_gallery(name, tags=None)`
-- `custom_gallery_update(gallery_id, name)`
-- `custom_gallery_add_tags(gallery_id, tags)`
-- `custom_gallery_remove_tags(gallery_id, tags)`
-- `custom_gallery_delete(gallery_id)`
-- `filtered_out_tags()`
-- `block_tag(tag)`
-- `unblock_tag(tag)`
-
 ### Gallery
 
-- `gallery(section='hot', sort='viral', page=0, window='day', show_viral=True)`
-- `memes_subgallery(sort='viral', page=0, window='week')`
-- `memes_subgallery_image(item_id)`
-- `subreddit_gallery(subreddit, sort='time', window='week', page=0)`
-- `subreddit_image(subreddit, image_id)`
-- `gallery_tag(tag, sort='viral', page=0, window='week')`
+- `gallery(section='hot', sort, page, window='day', show_viral=True)`
+- `gallery_subreddit(subreddit, sort, window='week', page)`
+- `gallery_subreddit_image(subreddit, image_id)`
+- `gallery_tag(tag, sort, page, window='week')`
 - `gallery_tag_image(tag, item_id)`
 - `gallery_item_tags(item_id)`
 - `gallery_tag_vote(item_id, tag, vote)`
-- `gallery_search(q, advanced=None, sort='time', window='all', page=0)`
-- `gallery_random(page=0)`
-- `share_on_imgur(item_id, title, terms=0)`
-- `remove_from_gallery(item_id)`
+- `gallery_search(q, advanced=None, sort, window='all', page)`
+- `gallery_random(page)`
+- `gallery_share_image(image_hash, title, terms=0)`
+- `gallery_share_album(album_hash)`
+- `gallery_remove(gallery_hash)`
 - `gallery_item(item_id)`
-- `report_gallery_item(item_id)`
 - `gallery_item_vote(item_id, vote='up')`
-- `gallery_item_comments(item_id, sort='best')`
+- `gallery_item_comments(item_id, sort)`
 - `gallery_comment(item_id, comment)`
 - `gallery_comment_ids(item_id)`
 - `gallery_comment_count(item_id)`
 
 ### Image
 
-- `get_image(image_id)`
-- `upload_from_path(path, config=None, anon=True)`
-- `upload_from_url(url, config=None, anon=True)`
-- `delete_image(image_id)`
-- `favorite_image(image_id)`
+- `image(image_id)`
+- `image_upload_from_path(path, config=None, anon=True)`
+- `image_upload_from_url(url, config=None, anon=True)`
+- `image_delete(image_id)`
+- `image_favorite(image_id)`
 
-### Conversation
+### Feed
 
-- `conversation_list()`
-- `get_conversation(conversation_id, page=1, offset=0)`
-- `create_message(recipient, body)`
-- `delete_conversation(conversation_id)`
-- `report_sender(username)`
-- `block_sender(username)`
+- `feed()`
 
-### Notification
-
-- `get_notifications(new=True)`
-- `get_notification(notification_id)`
-- `mark_notifications_as_read(notification_ids)`
-
-### Memegen
-
-- `default_memes()`
-
-## Wrapper Specific Subroutines
+## Client member sub-routines
 
 ### Getters
 
-- `get_response_code()`
+- `get_response()`
+- `get_response_content()`
 - `get_access_token()`
-- `get_refresh_token()`
-- `get_expiration_datetime()`
 - `get_x_ratelimit_userlimit()`
 - `get_x_ratelimit_userremaining()`
 - `get_x_ratelimit_userreset()`
 - `get_x_ratelimit_clientlimit()`
 - `get_x_ratelimit_clientremaining()`
 
-#### Setters
- - `set_response_type(type)`
- - `set_state(state)`
- - `set_pin(pin)`
- - `set_refresh_token(token)`
- - `set_expiration_datetime(datetime)`
- - `set_no_auth()`
- 
+### Setters
 
+- `set_state(state)`
+- `set_access_token(access_token)`
+- `set_refresh_token(refresh_token)`
+- `set_expiration_datetime(datetime)`
+- `set_no_auth()`
+
+## TODO
+
+- [ ] ETag support for performance
+- [ ] Core library tests
+- [ ] Account endpoint tests
+- [ ] Album endpoint tests
+- [ ] Comment endpoint tests
+- [ ] Gallery endpoint tests
+- [ ] Image endpoint tests
+- [ ] Feed endpoint tests
+- [ ] Publish to CPAN/METACPAN
+- [ ] Public API requests (using only client_id and client_secret)

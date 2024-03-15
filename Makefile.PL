@@ -3,7 +3,6 @@
 use strict;
 use warnings;
 use lib 'lib';
-use Deps;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
@@ -13,16 +12,16 @@ WriteMakefile(
 	PREREQ_PM => {
         'JSON'                      => '2.90',
         'LWP::UserAgent'            => '6.05',
-        'HTTP::Daemon'              => '6.01',
+        # 'HTTP::Daemon'              => '6.01',
         'HTTP::Request::Common'     => '6.04',
         'Data::Dumper'              => '2.154',
-        'DateTime::Format::ISO8601' => '0.08',
-        'Config::IniFiles'          => '2.86',    
+        # 'DateTime::Format::ISO8601' => '0.16',
+        # 'Config::IniFiles'          => '2.86',
         'Scalar::Util'              => '1.42',
-        'Class::Std::Utils'         => '0.0.3',
         'MIME::Base64'              => '3.15',
-        'File::Slurp'               => '9999.19',
+        'File::Slurp'               => '9999.30',
         'IO::File'                  => '1.16',
-        'Template'                  => '2.26'
-    } 
+        'Mozilla::CA'               => '20240313',
+        # 'Template'                  => '2.26'
+    }
 );
