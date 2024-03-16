@@ -60,33 +60,35 @@ The client library doesn't handle refreshing the access token for you automatica
 ### Account
 
 - `account(username)`
+- `account_album_count(username)`
+- `account_album_count(username)`
+- `account_album_ids(username, page)`
+- `account_albums(username, page)`
+- `account_block_create(username)`
 - `account_block_status(username)`
 - `account_blocks(username)`
-- `account_block_create(username)`
-- `account_delete(client_id, body)`
-- `account_follow_tag(tag_name)`
-- `account_unfollow_tag(tag_name)`
-- `account_images(username='me')`
-- `account_gallery_favorites(username, page, sort)`
-- `account_favorites(username)`
-- `account_submissions(username, page)`
-- `account_settings(username)`
-- `account_verify_email_status(username)`
-- `account_verify_email_send(username)`
-- `account_albums(username, page)`
-- `account_album_ids(username, page)`
-- `account_album_count(username)`
 - `account_comment(username, id)`
-- `account_comments(username, sort, page)`
-- `account_comment_ids(username, sort, page)`
 - `account_comment_count(username)`
 - `account_comment_delete(username, id)`
-- `account_images(username, page)`
+- `account_comment_ids(username, sort, page)`
+- `account_comments(username, sort, page)`
+- `account_delete(client_id, body)`
+- `account_favorites(username)`
+- `account_tag_follow(tag_name)`
+- `account_tag_unfollow(tag_name)`
+- `account_gallery_favorites(username, page, sort)`
 - `account_image(username, id)`
+- `account_image_delete(username, id)`
 - `account_image_ids(username, page)`
-- `account_album_count(username)`
+- `account_images(username, page)`
+- `account_images(username)`
 - `account_reply_notifications(username, new)`
+- `account_settings(username)`
 - `account_settings_update(username, fields)`
+- `account_submissions(username, page)`
+- `account_tag_unfollow(tag_name)`
+- `account_verify_email_send(username)`
+- `account_verify_email_status(username)`
 
 ### Album
 

@@ -16,8 +16,8 @@ use XML::LibXML;
 
 
 use constant ENDPOINTS => {
-    'IMGUR'          => 'https://api.imgur.com/3',
-    'RAPIDAPI'         => 'https://imgur-apiv3.p.rapidapi.com',
+    'IMGUR'           => 'https://api.imgur.com/3',
+    'RAPIDAPI'        => 'https://imgur-apiv3.p.rapidapi.com',
     'OAUTH_ADDCLIENT' => 'https://api.imgur.com/oauth2/addclient',
     'OAUTH_AUTHORIZE' => 'https://api.imgur.com/oauth2/authorize',
     'OAUTH_TOKEN'     => 'https://api.imgur.com/oauth2/token',
@@ -28,15 +28,15 @@ sub new {
     my $self = shift;
     my $args = shift // {};
     my $vars = {
-        'auth'          => 1,
-        'access_token'  => $args->{'access_token'},
-        'oauth_state'   => $args->{'oauth_state'} // '',
-        'client_id'     => $args->{'client_id'},
-        'client_secret' => $args->{'client_secret'},
-        'format_type'   => $args->{'format_type'} // 'json',
-        'mashape_key'   => $args->{'mashape_key'},
-        'user_agent'    => LWP::UserAgent->new,
-        'response'      => undef
+        'auth'           => 1,
+        'access_token'   => $args->{'access_token'},
+        'oauth_cb_state' => $args->{'oauth_cb_state'},
+        'client_id'      => $args->{'client_id'},
+        'client_secret'  => $args->{'client_secret'},
+        'format_type'    => $args->{'format_type'} // 'json',
+        'rapidapi_key'   => $args->{'rapidapi_key'},
+        'user_agent'     => LWP::UserAgent->new,
+        'response'       => undef
     };
 
     return bless $vars, $self;
@@ -45,15 +45,14 @@ sub new {
 sub _ua { shift->{'user_agent'} }
 
 sub request {
-    my ($self, $uri, $http_method, $post_data) = @_;
+    my ($self, $uri, $http_method, $data) = @_;
 
     $http_method = $http_method ? uc $http_method : 'GET';
 
-    my $end_point = (defined $self->{'mashape_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
+    my $end_point = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
 
     $end_point  = ($uri =~ /^http(?:s)?/ ? $uri : $end_point);
-    $end_point .= '?_format=' . ($self->{'format_type'} eq 'xml' ? 'xml' : 'json');
-    $end_point .= "&_method=$http_method";
+    $end_point .= '?_format=' . $self->{'format_type'} . "&_method=$http_method";
 
     if ($self->{'auth'}) {
         if (my $access_token = $self->{'access_token'}) {
@@ -63,13 +62,13 @@ sub request {
         $self->_ua->default_header('Authorization' => "Client-ID " . $self->{'client_id'});
     }
 
-    if ($http_method =~ /^GET|DELETE$/ && scalar keys %$post_data) {
-        while(my ($key, $value) = each %$post_data) {
+    if ($http_method =~ /^GET|DELETE$/ && scalar keys %$data) {
+        while (my ($key, $value) = each %$data) {
             $end_point .= "&$key=$value";
         }
     }
 
-    my $request = new HTTP::Request($http_method, $end_point, ($http_method eq 'POST' ? $post_data : undef));
+    my $request = new HTTP::Request($http_method, $end_point, ($http_method eq 'POST' ? $data : undef));
     my $api_resp = $self->_ua->request($request);
 
     $self->{'x_ratelimit_userlimit'}      = $api_resp->{'_headers'}{'x-ratelimit-userlimit'};
@@ -81,153 +80,75 @@ sub request {
     $self->{'response'} = $api_resp;
     $self->{'response_content'} = $api_resp->{'_content'};
 
-    if ($self->get_format_type eq 'xml') {
+    if ($self->format_type eq 'xml') {
         return (XML::LibXML->new)->load_xml( string => $api_resp->{'_content'} );
     }
-
-    # print Dumper $api_resp;
 
     return decode_json($api_resp->{'_content'});
 }
 
 # Setters
-sub set_client_id    { shift->{'client_id'}    = shift }
-sub set_format_type  { shift->{'format_type'}  = shift }
-sub set_state        { shift->{'state'}        = shift }
-sub set_access_token { shift->{'access_token'} = shift }
-sub set_no_auth      { shift->{'auth'}         = 0     }
+sub set_auth {
+    my ($self, $auth) = @_;
+    $self->{'auth'} = $auth;
+}
+
+sub set_client_id {
+    my ($self, $client_id) = @_;
+    $self->{'client_id'} = $client_id;
+}
+
+sub set_client_secret {
+    my ($self, $client_secret) = @_;
+    $self->{'client_secret'} = $client_secret;
+}
+
+sub set_format_type {
+    my ($self, $format_type) = @_;
+    $self->{'format_type'} = $format_type;
+}
+
+sub set_oauth_cb_state {
+    my ($self, $oauth_cb_state) = @_;
+    $self->{'oauth_cb_state'} = $oauth_cb_state;
+}
+
+sub set_access_token {
+    my ($self, $access_token) = @_;
+    $self->{'access_token'} = $access_token;
+}
+
+sub set_rapidapi_key {
+    my ($self, $rapidapi_key) = @_;
+    $self->{'rapidapi_key'} = $rapidapi_key;
+}
 
 # Getters
-sub get_oauth2_url {
+sub oauth2_authorize_url {
     my $self      = shift;
-    my $client_id = $self->{'client_id'};
-    my $state     = $self->{'state'};
+    my $client_id = $self->{'client_id'} or die "missing required client_id";
+    my $state     = $self->{'oauth_cb_state'} // '';
     return (ENDPOINTS->{'OAUTH_AUTHORIZE'} . "?client_id=$client_id&response_type=token&state=$state");
 }
 
-sub get_access_token                { return shift->{'access_token'}                }
-sub get_format_type                 { return shift->{'format_type'}                 }
-sub get_response                    { return shift->{'response'}                    }
-sub get_response_content            { return shift->{'response_content'}            }
-sub get_x_ratelimit_userlimit       { return shift->{'x_ratelimit_userlimit'}       }
-sub get_x_ratelimit_userremaining   { return shift->{'x_ratelimit_userremaining'}   }
-sub get_x_ratelimit_userreset       { return shift->{'x_ratelimit_userreset'}       }
-sub get_x_ratelimit_clientlimit     { return shift->{'x_ratelimit_clientlimit'}     }
-sub get_x_ratelimit_clientremaining { return shift->{'x_ratelimit_clientremaining'} }
+sub client_id                   { return shift->{'client_id'}                   }
+sub client_secret               { return shift->{'client_secret'}               }
+sub access_token                { return shift->{'access_token'}                }
+sub format_type                 { return shift->{'format_type'}                 }
+sub oauth_cb_state              { return shift->{'oauth_cb_state'}              }
+sub rapidapi_key                { return shift->{'rapidapi_key'}                }
+sub response                    { return shift->{'response'}                    }
+sub response_content            { return shift->{'response_content'}            }
+sub x_ratelimit_userlimit       { return shift->{'x_ratelimit_userlimit'}       }
+sub x_ratelimit_userremaining   { return shift->{'x_ratelimit_userremaining'}   }
+sub x_ratelimit_userreset       { return shift->{'x_ratelimit_userreset'}       }
+sub x_ratelimit_clientlimit     { return shift->{'x_ratelimit_clientlimit'}     }
+sub x_ratelimit_clientremaining { return shift->{'x_ratelimit_clientremaining'} }
 
 # Account
 sub account {
     my ($self, $user) = @_;
     return $self->request("/account/$user");
-}
-
-sub account_block_status {
-    my ($self, $user) = @_;
-    return $self->request("/account/$user/block");
-}
-
-sub account_blocks {
-    my $self = shift;
-    return $self->request("/account/me/block");
-}
-
-sub account_block_create {
-    my ($self, $user) = @_;
-    return $self->request("/account/v1/$user/block", 'POST');
-}
-
-sub account_block_delete {
-    my ($self, $user) = @_;
-    return $self->request("/account/v1/$user/block", 'DELETE');
-}
-
-# https://apidocs.imgur.com/#dcdbad18-260a-4501-8618-a26e7ccb8596
-sub account_delete {
-    my $self = shift;
-    my $client_id = shift or die "missing required client id\n";
-    my $body = shift or die "missing required post body\n"
-    return $self->request("/account/me/delete?client_id=$client_id", 'POST');
-}
-
-# https://apidocs.imgur.com/#1f3f60f1-fc3f-4d06-b1c5-9bfc3610dacf
-sub account_follow_tag {
-    my $self = shift;
-    my $tag  = shift or die "missing required tag\n";
-    return $self->request("/account/me/follow/tag/$tag", 'POST');
-}
-
-# https://apidocs.imgur.com/#952bcee4-aab9-4679-9261-04845c59355e
-sub account_unfollow_tag {
-    my $self = shift;
-    my $tag  = shift or die "missing required tag\n";
-    return $self->request("/account/me/follow/tag/$tag", 'DELETE');
-}
-
-sub account_images {
-    my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/images");
-}
-
-sub account_image {
-    my $self = shift;
-    my $user = shift // 'me';
-    my $id   = shift or die "missing required image id\n";
-    return $self->request("/account/$user/image/$id");
-}
-
-sub account_iamge_delete {
-    my $self = shift;
-    my $user = shift // 'me';
-    my $id   = shift or die "missing required image delete has\n";
-    return $self->request("/account/$user/image/$id", 'DELETE');
-}
-
-sub account_image_ids {
-    my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
-    return $self->request("/account/$user/image/ids/$page");
-}
-
-sub account_gallery_favorites {
-    my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
-    my $sort = shift // 'newest';
-    return $self->request("/account/$user/gallery_favorites/$page/$sort");
-}
-
-sub account_favorites {
-    my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/favorites");
-}
-
-sub account_submissions {
-    my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
-    return $self->request("/account/$user/submissions/$page");
-}
-
-sub account_verify_email_send {
-    my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/verifyemail", 'POST');
-}
-
-sub account_verify_email_status {
-    my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/verifyemail");
-}
-
-sub account_albums {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $page = shift || 1;
-    return $self->request("/account/$user/albums/$page");
 }
 
 sub account_album {
@@ -255,6 +176,13 @@ sub account_album_delete {
     my $user = shift || 'me';
     my $hash = shift or die "missing required album hash\n";
     return $self->request("/account/$user/album/$hash", 'DELETE');
+}
+
+sub account_albums {
+    my $self = shift;
+    my $user = shift || 'me';
+    my $page = shift || 1;
+    return $self->request("/account/$user/albums/$page");
 }
 
 sub account_comments {
@@ -293,6 +221,75 @@ sub account_comment_delete {
     return $self->request("/account/$user/comment/$id", 'DELETE');
 }
 
+sub account_block_status {
+    my ($self, $user) = @_;
+    return $self->request("/account/$user/block");
+}
+
+sub account_blocks {
+    my $self = shift;
+    return $self->request("/account/me/block");
+}
+
+sub account_block_create {
+    my ($self, $user) = @_;
+    return $self->request("/account/v1/$user/block", 'POST');
+}
+
+sub account_block_delete {
+    my ($self, $user) = @_;
+    return $self->request("/account/v1/$user/block", 'DELETE');
+}
+
+# https://apidocs.imgur.com/#dcdbad18-260a-4501-8618-a26e7ccb8596
+sub account_delete {
+    my $self = shift;
+    my $client_id = shift or die "missing required client id\n";
+    my $body = shift or die "missing required post body\n";
+    return $self->request("/account/me/delete?client_id=$client_id", 'POST', $body);
+}
+
+sub account_favorites {
+    my $self = shift;
+    my $user = shift // 'me';
+    return $self->request("/account/$user/favorites");
+}
+
+sub account_gallery_favorites {
+    my $self = shift;
+    my $user = shift // 'me';
+    my $page = shift || 1;
+    my $sort = shift // 'newest';
+    return $self->request("/account/$user/gallery_favorites/$page/$sort");
+}
+
+sub account_image {
+    my $self = shift;
+    my $user = shift // 'me';
+    my $id   = shift or die "missing required image id\n";
+    return $self->request("/account/$user/image/$id");
+}
+
+sub account_image_delete {
+    my $self = shift;
+    my $user = shift // 'me';
+    my $id   = shift or die "missing required image delete has\n";
+    return $self->request("/account/$user/image/$id", 'DELETE');
+}
+
+sub account_image_ids {
+    my $self = shift;
+    my $user = shift // 'me';
+    my $page = shift || 1;
+    return $self->request("/account/$user/image/ids/$page");
+}
+
+sub account_images {
+    my $self = shift;
+    my $user = shift // 'me';
+    return $self->request("/account/$user/images");
+}
+
 sub account_reply_notifications {
     my $self = shift;
     my $user = shift || 'me';
@@ -319,33 +316,58 @@ sub account_settings_update {
     return $self->request("/account/$user/settings", 'POST', $data);
 }
 
+sub account_submissions {
+    my $self = shift;
+    my $user = shift // 'me';
+    my $page = shift || 1;
+    return $self->request("/account/$user/submissions/$page");
+}
+
+# https://apidocs.imgur.com/#1f3f60f1-fc3f-4d06-b1c5-9bfc3610dacf
+sub account_tag_follow {
+    my $self = shift;
+    my $tag  = shift or die "missing required tag\n";
+    return $self->request("/account/me/follow/tag/$tag", 'POST');
+}
+
+# https://apidocs.imgur.com/#952bcee4-aab9-4679-9261-04845c59355e
+sub account_tag_unfollow {
+    my $self = shift;
+    my $tag  = shift or die "missing required tag\n";
+    return $self->request("/account/me/follow/tag/$tag", 'DELETE');
+}
+
+sub account_verify_email_send {
+    my $self = shift;
+    my $user = shift // 'me';
+    return $self->request("/account/$user/verifyemail", 'POST');
+}
+
+sub account_verify_email_status {
+    my $self = shift;
+    my $user = shift // 'me';
+    return $self->request("/account/$user/verifyemail");
+}
+
 # Album
 sub album {
     my ($self, $id) = @_;
     return $self->request("/album/$id");
 }
 
-sub album_images {
-    my ($self, $id) = @_;
-    return $self->request("/album/$id/images");
-}
-
+# TODO: test this
 sub album_create {
-    my ($self, $fields) = @_;
-    my %valid_album_keys = map { $_ => 1 } ('ids', 'title', 'description', 'privacy', 'layout', 'cover');
+    my $self = shift;
+    my $params = shift // {};
+    my @optional_params = (qw(ids deletehashes title description privacy layout cover));
+    my %valid_params = map { $_ => 1 } @optional_params;
     my $data = {};
 
-    die("Error: you must provide fields when creating an album\n") unless $fields;
-
-    foreach my $key (keys %{ $fields }) {
-        $data->{ $key } = $fields->{ $key } unless ! exists($valid_album_keys{ $key });
+    foreach my $param (keys %{$params}) {
+        $data->{$param} = $params->{$param} unless ! exists($valid_params{$param});
     }
 
     return $self->request("/album", 'POST', $data);
-}
-
-sub album_update {
-    my ($self, $id) = @_;
 }
 
 sub album_delete {
@@ -354,23 +376,59 @@ sub album_delete {
 }
 
 sub album_favorite {
-    my ($self, $id) = @_;
-    return $self->request("/album/$id/favorite", 'POST');
+    my $self = shift;
+    my $album_id = shift or die "missing required album id";
+    return $self->request("/album/$album_id/favorite", 'POST');
 }
 
-sub album_set_images {
-    my ($self, $id, $image_ids) = @_;
-    return $self->request("/album/$id/", 'POST', $image_ids);
+sub album_image {
+    my $self = shift;
+    my $album_id = shift or die "missing required album id";
+    my $image_id = shift or die "missing required image id";
+    return $self->request("/album/$album_id/image/$image_id");
 }
 
-sub album_add_images {
-    my ($self, $id, $image_ids) = @_;
-    return $self->request("/album/$id/add", 'POST', $image_ids);
+sub album_images {
+    my $self = shift;
+    my $album_id = shift or die "missing required album id";
+    return $self->request("/album/$album_id/images");
 }
 
-sub album_delete_images {
-    my ($self, $id, @image_ids) = @_;
-    return $self->request("/album/$id/remove_images", 'DELETE', {'ids' => join(',', @image_ids)});
+sub album_images_add {
+    my $self = shift;
+    my $album_id = shift or die "missing required album_id";
+    my $image_ids = shift or die "missing required image_ids";
+    return $self->request("/album/$album_id/add", 'POST', $image_ids);
+}
+
+sub album_images_delete {
+    my $self = shift;
+    my $album_id = shift or die "missing required album_id";
+    my $image_ids = shift or die "missing required image_ids";
+    return $self->request("/album/$album_id/remove_images", 'DELETE', {'ids' => join(',', @$image_ids)});
+}
+
+sub album_images_set {
+    my $self = shift;
+    my $album_id = shift or die "missing required album_id";
+    my $image_ids = shift or die "missing required image_ids";
+    return $self->request("/album/$album_id", 'POST', $image_ids);
+}
+
+# TODO: test this
+sub album_update {
+    my $self = shift;
+    my $album_id = shift or die "missing required album_id";
+    my $params = shift // {};
+    my @optional_params = (qw(ids deletehashes title description privacy layout cover));
+    my %valid_params = map { $_ => 1 } @optional_params;
+    my $data = {};
+
+    foreach my $param (keys %{$params}) {
+        $data->{$param} = $params->{$param} unless ! exists($valid_params{$param});
+    }
+
+    return $self->request("/album/$album_id", 'PUT', $data);
 }
 
 # Comment
@@ -379,36 +437,66 @@ sub comment {
     return $self->request("/comment/$id");
 }
 
+# TODO: test this
+sub comment_create {
+    my $self = shift;
+    my $image_id = shift or die "missing required image id";
+    my $comment = shift or die "missing required comment";
+    my $parent_id = shift;
+
+    return $self->request("/comment", 'POST', {
+        'image_id' => $image_id,
+        'comment'  => $comment,
+        ($parent_id ? ('parent_id'  => $parent_id) : ()),
+    });
+}
+
 sub comment_delete {
-    my ($self, $id) = @_;
-    return $self->request("/comment/$id", 'DELETE');
+    my $self = shift;
+    my $image_id = shift or die "missing required image id";
+    return $self->request("/comment/$image_id", 'DELETE');
 }
 
 sub comment_replies {
-    my ($self, $id) = @_;
-    return $self->request("/comment/$id/repies");
+    my $self = shift;
+    my $comment_id = shift or die "missing required comment_id";
+    return $self->request("/comment/$comment_id/repies");
 }
 
 sub comment_reply {
-    my ($self, $image_id, $comment_id, $comment) = @_;
+    my $self = shift;
+    my $image_id = shift or die "missing required image_id";
+    my $comment_id = shift or die "missing required comment_id";
+    my $comment = shift or die "missing required comment";
+
     my $data = {
-        'image_id'   => $image_id,
-        'comment_id' => $comment_id,
-        'comment'    => $comment
+        'image_id' => $image_id,
+        'comment'  => $comment
     };
 
     $self->request("/comment/$comment_id", 'POST', $data);
 }
 
-sub comment_vote {
-    my ($self, $id, $vote) = @_;
-    $vote ||= 'up';
-    return $self->request("/comment/$id/vote/$vote", 'POST');
+# TODO: test this
+sub comment_report {
+    my $self = shift;
+    my $comment_id = shift or die "missing required comment_id";
+    my $reason = shift;
+    my $data = {};
+
+    if ($reason) {
+        $data->{'reason'} = $reason;
+    }
+
+    return $self->request("/comment/$comment_id/report", 'POST', $data);
 }
 
-sub comment_report {
-    my ($self, $id) = @_;
-    return $self->request("/comment/$id/report", 'POST');
+sub comment_vote {
+    my $self = shift;
+    my $comment_id = shift or die "missing required comment_id";
+    my $vote = shift or die "missing required vote";
+
+    return $self->request("/comment/$comment_id/vote/$vote", 'POST');
 }
 
 # Gallery
