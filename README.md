@@ -184,7 +184,13 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Image
 
-- `image(image_id)`
+- `image($id)`
+- `image_upload($src, \%optional)`
+  - `src` image or video source - can be one of type: file, url, base64 or raw string
+  - `type` image or video source type - can be one of: file, url, base64 or raw string
+  - `optional` optional data can include
+    - `title` - title of the content
+    - `description` - description of the content
 - `image_upload_from_path(path, config=None, anon=True)`
 - `image_upload_from_url(url, config=None, anon=True)`
 - `image_delete(image_id)`
@@ -219,11 +225,5 @@ The client library doesn't handle refreshing the access token for you automatica
 
 - [ ] ETag support for performance
 - [ ] Core library tests
-- [ ] Account endpoint tests
-- [ ] Album endpoint tests
-- [ ] Comment endpoint tests
-- [ ] Gallery endpoint tests
-- [ ] Image endpoint tests
-- [ ] Feed endpoint tests
 - [ ] Publish to CPAN/METACPAN
 - [ ] Public API requests (using only client_id and client_secret)

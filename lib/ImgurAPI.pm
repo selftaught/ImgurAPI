@@ -7,7 +7,7 @@ use warnings;
 use Data::Dumper;
 use File::Slurp;
 use HTTP::Request::Common;
-use JSON qw(decode_json);
+use JSON qw(decode_json encode_json);
 use List::Util qw(first);
 use LWP::UserAgent;
 use MIME::Base64;
@@ -46,14 +46,17 @@ sub new {
 sub _ua { shift->{'user_agent'} }
 
 sub request {
-    my ($self, $uri, $http_method, $data) = @_;
+    my ($self, $uri, $http_method, $data, $headers) = @_;
 
+    $DB::single = 1;
     $http_method = $http_method ? uc $http_method : 'GET';
 
     my $end_point = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
 
     $end_point  = ($uri =~ /^http(?:s)?/ ? $uri : $end_point);
     $end_point .= '?_format=' . $self->{'format_type'} . "&_method=$http_method";
+
+    $self->_ua->default_header('User-Agent' => "ImgurAPI-perl-lib/0.1");
 
     if ($self->{'auth'}) {
         if (my $access_token = $self->{'access_token'}) {
@@ -69,22 +72,31 @@ sub request {
         }
     }
 
-    my $request = new HTTP::Request($http_method, $end_point, ($http_method eq 'POST' ? $data : undef));
-    my $api_resp = $self->_ua->request($request);
+    my $request;
+    if ($http_method ne 'POST') {
+        $request = HTTP::Request->new($http_method, $end_point);
+    } else {
+        $request = HTTP::Request::Common::POST($end_point, %{$headers // {}}, Content => $data);
+    }
 
+    my $api_resp = $self->_ua->request($request);
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
 
-    $self->{'x_ratelimit_userlimit'}      = $api_resp->{'_headers'}{'x-ratelimit-userlimit'};
-    $self->{'x_ratelimit_userremaining'}  = $api_resp->{'_headers'}{'x-ratelimit-userremaining'};
-    $self->{'x_ratelimit_userreset'}      = $api_resp->{'_headers'}{'x-ratelimit-userreset'};
-    $self->{'x_ratelimit_clientlimit'}    = $api_resp->{'_headers'}{'x-ratelimit-clientlimit'};
-    $self->{'x_ratelimit_lientremaining'} = $api_resp->{'_headers'}{'x-ratelimit-clientremaining'};
+    foreach my $header (@ratelimit_headers) {
+        $self->{"x_ratelimit_$header"} = $api_resp->header("x-ratelimit-$header");
+    }
 
     $self->{'response'} = $api_resp;
     $self->{'response_content'} = $api_resp->{'_content'};
 
     if ($self->format_type eq 'xml') {
         return (XML::LibXML->new)->load_xml(string => $api_resp->{'_content'});
+    }
+
+    my $decoded = eval { decode_json $api_resp->{'_content'} };
+
+    if (my $err = $@) {
+        die "failed to decode json response: $err\n";
     }
 
     return decode_json($api_resp->{'_content'});
@@ -555,7 +567,6 @@ sub gallery {
     my $page       = $optional->{'page'} // 0;
     my $window     = $optional->{'window'} // 'day';
     my $show_viral = $optional->{'show_viral'} // 1;
-    # my $mature     = $optional->{'mature'} // 0;
     my $album_prev = $optional->{'album_previews'} // 1;
 
     return $self->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
@@ -607,19 +618,20 @@ sub gallery_item_report {
     my $reason = $optional->{'reason'};
     my %data = ($reason ? (reason => $reason) : ());
 
-    $data->{'reason'} = $reason if $reason;
+    $data{'reason'} = $reason if $reason;
 
     return $self->request("/gallery/image/$id/report", 'POST', \%data);
 }
 
 sub gallery_item_tags {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id = shift or die "missing required image/album id";
     return $self->request("/gallery/$id/tags");
 }
 
 sub gallery_item_tags_update {
     my $self = shift;
-    my $id = shift or die "missing required gallery id";
+    my $id = shift or die "missing required image/album id";
     my $tags = shift or die "missing required tags";
     return $self->request("/gallery/$id/tags", 'POST', {'tags' => $tags});
 }
@@ -643,7 +655,6 @@ sub gallery_image_remove {
     return $self->request("/gallery/$id", 'DELETE');
 }
 
-# https://apidocs.imgur.com/#3c981acf-47aa-488f-b068-269f65aee3ce
 sub gallery_search {
     my $self = shift;
     my $query = shift;
@@ -663,12 +674,7 @@ sub gallery_search {
         die "must provide a query or advanced search parameters";
     }
 
-    my $uri = "/gallery/search/$sort/$window/$page";
-    if (!$advanced) {
-        $uri .= "?q=$query";
-    }
-
-    return $self->request($uri, 'GET', $data);
+    return $self->request("/gallery/search/$sort/$window/$page" . ($advanced ? '' : "?q=$query"), 'GET', $data);
 }
 
 sub gallery_share_image {
@@ -743,6 +749,7 @@ sub gallery_subreddit_image {
 
 sub gallery_tag {
     my $self = shift;
+    my $tag = shift or die "missing required tag";
     my $optional = shift // {};
     my $sort = $optional->{'sort'} // 'viral';
     my $page = $optional->{'page'} // 0;
@@ -769,61 +776,41 @@ sub gallery_tags {
 
 # Image
 sub image {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id = shift or die "missing required image id";
     return $self->request("/image/$id");
 }
 
-sub image_upload_from_path {
-    my ($self, $path, $fields, $anon) = @_;
-    $fields ||= {};
-    $anon   ||= 0;
+sub image_upload {
+    my $self = shift;
+    my $src = shift or die "missing required image/video src";
+    my $type = shift or die "missing required image/video type";
+    my $optional = shift // {};
+    my $data = {'image' => $src, 'type' => $type};
+    my %headers = ();
 
-    my $image_data = read_file($path);
-    my $data       = {
-        'image' => encode_base64($image_data),
-        'type'  => 'base64'
-    };
+    $data->{'title'} = $optional->{'title'} if $optional->{'title'};
+    $data->{'description'} = $optional->{'description'} if $optional->{'description'};
 
-    if ($fields) {
-        my %valid_image_keys = map { $_ => 1 } ('album', 'name', 'title', 'description');
-
-        foreach my $key (keys %{ $fields }) {
-            $data->{ $key } = $fields->{ $key } unless ! exists($valid_image_keys{ $key });
-        }
+    if ($type eq 'file') {
+        die "file doesnt exist at path: $src\n" unless -e $src;
+        die "provided src file path is not a file\n" unless -f $src;
+        $data->{'image'} = [ $src ];
+        $headers{Content_Type} = 'form-data';
     }
 
-    return $self->request("/upload", 'POST', $data);
-}
-
-sub image_upload_from_url {
-    my ($self, $url, $fields, $anon) = @_;
-
-    $fields ||= {};
-    $anon   ||= 0;
-
-    my $data = {
-        'image' => $url,
-        'type'  => 'url'
-    };
-
-    if ($fields) {
-        my %valid_image_keys = map { $_ => 1 } ('album', 'name', 'title', 'description');
-
-        foreach my $key (keys %{ $fields }) {
-            $data->{ $key } = $fields->{ $key } unless ! exists($valid_image_keys{ $key });
-        }
-    }
-
-    return $self->request("/upload", 'POST', $data);
+    return $self->request("/image", 'POST', $data, \%headers);
 }
 
 sub image_delete {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id = shift or die "missing required image id";
     return $self->request("/image/$id", 'DELETE');
 }
 
 sub image_favorite {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id = shift or die "missing required image id";
     return $self->request("/image/$id/favorite", 'POST');
 }
 
