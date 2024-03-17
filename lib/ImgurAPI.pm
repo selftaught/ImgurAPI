@@ -561,52 +561,55 @@ sub gallery {
     return $self->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
 }
 
-sub gallery_subreddit {
+sub gallery_album {
     my $self = shift;
-    my $subreddit = shift or die "missing required subreddit";
-    my $optional = shift // {};
-
-    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
-
-    my $sort = $optional->{'sort'} // 'time';
-    my $window = $optional->{'window'} // 'week';
-    my $page = $optional->{'page'} // 0;
-
-    return $self->request(("/gallery/r/$subreddit/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
+    my $album_id = shift or die "missing required album id";
+    return $self->request("/gallery/album/$album_id");
 }
 
-sub gallery_subreddit_image {
+sub gallery_image {
     my $self = shift;
-    my $subreddit = shift or die "missing required subreddit";
     my $image_id = shift or die "missing required image id";
-
-    return $self->request("/gallery/r/$subreddit/$image_id");
+    return $self->request("/gallery/image/$image_id");
 }
 
-sub gallery_tag {
+sub gallery_item {
+    my ($self, $id) = @_;
+    return $self->request("/gallery/$id");
+}
+
+sub gallery_item_comment {
     my $self = shift;
+    my $id = shift or die "missing required album/image id";
+    my $comment = shift or die "missing required comment";
+    return $self->request("/gallery/$id/comment", 'POST', {comment => $comment});
+}
+
+sub gallery_item_comment_info {
+    my $self = shift;
+    my $id = shift or die "missing required album/image id";
+    my $comment_id = shift or die "missing required comment id";
+    return $self->request("/gallery/$id/comment/$comment_id");
+}
+
+sub gallery_item_comments {
+    my $self = shift;
+    my $id = shift or die "missing required image/album id";
     my $optional = shift // {};
-    my $sort = $optional->{'sort'} // 'viral';
-    my $page = $optional->{'page'} // 0;
-    my $window = $optional->{'window'} // 'week';
-
-    return $self->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
+    my $sort = $optional->{'sort'} // 'best';
+    return $self->request("/gallery/$id/comments/$sort");
 }
 
-sub gallery_tag_info {
+sub gallery_item_report {
     my $self = shift;
-    my $tag = shift or die "missing required tag";
-    return $self->request("/gallery/tag_info/$tag");
-}
+    my $id = shift or die "missing required image/album id";
+    my $optional = shift // {};
+    my $reason = $optional->{'reason'};
+    my %data = ($reason ? (reason => $reason) : ());
 
-sub gallery_tag_vote {
-    my ($self, $id, $tag, $vote) = @_;
-    return $self->response("/gallery/$id/vote/tag/$tag/$vote", 'POST');
-}
+    $data->{'reason'} = $reason if $reason;
 
-sub gallery_tags {
-    my $self = shift;
-    return $self->request("/tags");
+    return $self->request("/gallery/image/$id/report", 'POST', \%data);
 }
 
 sub gallery_item_tags {
@@ -619,6 +622,25 @@ sub gallery_item_tags_update {
     my $id = shift or die "missing required gallery id";
     my $tags = shift or die "missing required tags";
     return $self->request("/gallery/$id/tags", 'POST', {'tags' => $tags});
+}
+
+sub gallery_item_vote {
+    my $self = shift;
+    my $id = shift or die "missing required image/album id";
+    my $vote = shift or die "missing required vote";
+    return $self->request("/gallery/$id/vote/$vote", 'POST');
+}
+
+sub gallery_item_votes {
+    my $self = shift;
+    my $id = shift or die "missing required image/album id";
+    return $self->request("/gallery/$id/votes");
+}
+
+sub gallery_image_remove {
+    my $self = shift;
+    my $id = shift or die "missing required image id";
+    return $self->request("/gallery/$id", 'DELETE');
 }
 
 # https://apidocs.imgur.com/#3c981acf-47aa-488f-b068-269f65aee3ce
@@ -697,41 +719,52 @@ sub gallery_share_album {
     return $self->request("/gallery/album/$album_id", "POST", $data);
 }
 
-sub gallery_remove {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id", 'DELETE');
+sub gallery_subreddit {
+    my $self = shift;
+    my $subreddit = shift or die "missing required subreddit";
+    my $optional = shift // {};
+
+    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
+
+    my $sort = $optional->{'sort'} // 'time';
+    my $window = $optional->{'window'} // 'week';
+    my $page = $optional->{'page'} // 0;
+
+    return $self->request(("/gallery/r/$subreddit/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
-sub gallery_item {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id");
+sub gallery_subreddit_image {
+    my $self = shift;
+    my $subreddit = shift or die "missing required subreddit";
+    my $image_id = shift or die "missing required image id";
+
+    return $self->request("/gallery/r/$subreddit/$image_id");
 }
 
-sub gallery_item_vote {
-    my ($self, $id, $vote) = @_;
-    $vote ||= 'up';
-    return $self->request("/gallery/$id/vote/$vote", 'POST');
+sub gallery_tag {
+    my $self = shift;
+    my $optional = shift // {};
+    my $sort = $optional->{'sort'} // 'viral';
+    my $page = $optional->{'page'} // 0;
+    my $window = $optional->{'window'} // 'week';
+
+    return $self->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
-sub gallery_item_comments {
-    my ($self, $id, $sort) = @_;
-    $sort ||= 'best';
-    return $self->request("/gallery/$id/comments/$sort");
+sub gallery_tag_info {
+    my $self = shift;
+    my $tag = shift or die "missing required tag";
+    return $self->request("/gallery/tag_info/$tag");
 }
 
-sub gallery_comment {
-    my ($self, $id, $comment) = @_;
-    return $self->request("/gallery/$id/comment", 'POST', { 'comment' => $comment });
+sub gallery_tag_vote {
+    my ($self, $id, $tag, $vote) = @_;
+    return $self->response("/gallery/$id/vote/tag/$tag/$vote", 'POST');
 }
 
-sub gallery_comment_ids {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id/comments/ids");
-}
-
-sub gallery_comment_count {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id/comments/count");
+sub gallery_tags {
+    my $self = shift;
+    return $self->request("/tags");
 }
 
 # Image

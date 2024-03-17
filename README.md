@@ -121,22 +121,28 @@ The client library doesn't handle refreshing the access token for you automatica
     - `window` - day (default), week, month, year, all
     - `show_viral` - 0 or 1 (default)
     - `album_preview` - 0 or 1 (default)
-- `gallery_subreddit($subreddit, \%optional)`
+- `gallery_album($album_id)`
+- `gallery_image($image_id)`
+- `gallery_image_remove($image_id)`
+- `gallery_item($id)`
+- `gallery_item_comment($id, $comment)`
+- `gallery_item_comment_info($id, $comment_id)`
+- `gallery_item_comments($id, \%optional)`
   - optional:
-    - `sort` - viral (default), top, time, rising
-    - `page` - page number (default: 0)
-    - `window` - day, week (default), month, year, all
-- `gallery_subreddit_image($subreddit, $image_id)`
-- `gallery_tag($tag, \%optional)`
+    - `sort` - one of: best (default), top, or new
+- `gallery_item_report($id, \%optional)`
   - optional:
-    - `sort` - viral (default), top, time, rising
-    - `page` - page number (default: 0)
-    - `window` - day, week (default), month, year, all
-- `gallery_tag_info($tag)`
+    - `reason` - integer value reason for report. values:
+      - `1` - doesn't belong on imgur
+      - `2` - spam
+      - `3` - abusive
+      - `4` - mature content not marked as mature
+      - `5` - pornography
 - `gallery_item_tags_update($id, \@tags)`
-- `gallery_tags()`
-- `gallery_item_tags(item_id)`
-- `gallery_tag_vote(item_id, tag, vote)`
+- `gallery_item_vote($id, $vote)`
+  - `vote` - up, down, or veto
+- `gallery_item_votes($id)`
+- `gallery_item_tags($id)`
 - `gallery_search($query, \%optional, \%advanced)`
   - optional:
     - `sort` - viral, top, time (default), rising
@@ -161,13 +167,20 @@ The client library doesn't handle refreshing the access token for you automatica
     - `terms` - if the user has not accepted the terms yet, this endpoint will return an error. pass `1` to by-pass
     - `mature` - set to `1` if the post is mature
     - `tags` - The name of the tags you wish to associate with a post. Can be passed as an array or csv string
-- `gallery_remove(gallery_hash)`
-- `gallery_item(item_id)`
-- `gallery_item_vote(item_id, vote='up')`
-- `gallery_item_comments(item_id, sort)`
-- `gallery_comment(item_id, comment)`
-- `gallery_comment_ids(item_id)`
-- `gallery_comment_count(item_id)`
+- `gallery_subreddit($subreddit, \%optional)`
+  - optional:
+    - `sort` - viral (default), top, time, rising
+    - `page` - page number (default: 0)
+    - `window` - day, week (default), month, year, all
+- `gallery_subreddit_image($subreddit, $image_id)`
+- `gallery_tag($tag, \%optional)`
+  - optional:
+    - `sort` - viral (default), top, time, rising
+    - `page` - page number (default: 0)
+    - `window` - day, week (default), month, year, all
+- `gallery_tag_info($tag)`
+- `gallery_tag_vote(item_id, tag, vote)`
+- `gallery_tags()`
 
 ### Image
 
