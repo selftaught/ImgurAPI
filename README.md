@@ -23,12 +23,12 @@ _note that all are optional but the library will throw if its needed and not def
 - `client_id`
 - `client_secret`
 - `access_key`
-- `mashape_key`
-  - commercial rapidapi api key
+- `rapidapi_key`
+  - commercial rapidapi / mashape api key (commercial use)
 - `format_type`
   - api endpoint response format type
   - valid values are `json` (default) and `xml`
-- `oauth_state`
+- `oauth_cb_state`
   - parameter appended to oauth2 authorization url returned from `get_oauth2_url()` which may be useful to your application upon receipt of the response.
 
 ### Authorization
@@ -191,10 +191,8 @@ The client library doesn't handle refreshing the access token for you automatica
   - `optional` optional data can include
     - `title` - title of the content
     - `description` - description of the content
-- `image_upload_from_path(path, config=None, anon=True)`
-- `image_upload_from_url(url, config=None, anon=True)`
-- `image_delete(image_id)`
-- `image_favorite(image_id)`
+- `image_delete($id)`
+- `image_favorite($id)`
 
 ### Feed
 
