@@ -193,6 +193,11 @@ The client library doesn't handle refreshing the access token for you automatica
     - `description` - description of the content
 - `image_delete($id)`
 - `image_favorite($id)`
+- `image_update($id, \%optional)`
+  - optional:
+    - `title` - content title
+    - `description` - content description
+
 
 ### Feed
 
@@ -202,14 +207,16 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Getters
 
-- `get_response()`
-- `get_response_content()`
-- `get_access_token()`
-- `get_x_ratelimit_userlimit()`
-- `get_x_ratelimit_userremaining()`
-- `get_x_ratelimit_userreset()`
-- `get_x_ratelimit_clientlimit()`
-- `get_x_ratelimit_clientremaining()`
+- `response()`
+- `response_content()`
+- `access_token()`
+- `ratelimit_headers()`
+  - returns rate limit key value pairs from imgur api response:
+    - `userlimit`
+    - `userremaining`
+    - `userreset`
+    - `clientlimit`
+    - `clientremaining`
 
 ### Setters
 
@@ -218,10 +225,3 @@ The client library doesn't handle refreshing the access token for you automatica
 - `set_refresh_token(refresh_token)`
 - `set_expiration_datetime(datetime)`
 - `set_no_auth()`
-
-## TODO
-
-- [ ] ETag support for performance
-- [ ] Core library tests
-- [ ] Publish to CPAN/METACPAN
-- [ ] Public API requests (using only client_id and client_secret)

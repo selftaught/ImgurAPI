@@ -38,6 +38,7 @@ sub new {
         'rapidapi_key'   => $args->{'rapidapi_key'},
         'user_agent'     => LWP::UserAgent->new,
         'response'       => undef
+        'ratelimit_hdrs' => {},
     };
 
     return bless $vars, $self;
@@ -83,7 +84,7 @@ sub request {
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
 
     foreach my $header (@ratelimit_headers) {
-        $self->{"x_ratelimit_$header"} = $api_resp->header("x-ratelimit-$header");
+        $self->{'ratelimit_hdrs'}->{$header} = $api_resp->header("x-ratelimit-$header");
     }
 
     $self->{'response'} = $api_resp;
@@ -178,25 +179,10 @@ sub response_content {
     return shift->{'response_content'}
 }
 
-sub x_ratelimit_userlimit {
-    return shift->{'x_ratelimit_userlimit'}
+sub ratelimit_headers {
+    return shift->{'ratelimit_headers'}
 }
 
-sub x_ratelimit_userremaining {
-    return shift->{'x_ratelimit_userremaining'}
-}
-
-sub x_ratelimit_userreset {
-    return shift->{'x_ratelimit_userreset'}
-}
-
-sub x_ratelimit_clientlimit {
-    return shift->{'x_ratelimit_clientlimit'}
-}
-
-sub x_ratelimit_clientremaining {
-    return shift->{'x_ratelimit_clientremaining'}
-}
 
 sub _validate {
     my $self = shift;
@@ -813,6 +799,14 @@ sub image_favorite {
     my $id = shift or die "missing required image id";
     return $self->request("/image/$id/favorite", 'POST');
 }
+
+sub image_update {
+    my $self = shift;
+    my $id = shift or die "missing required image id";
+    my $optional = shift // {};
+    return $self->request("/image/$id", 'POST', $optional);
+}
+
 
 # Feed
 sub feed {
