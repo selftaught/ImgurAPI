@@ -113,17 +113,54 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Gallery
 
-- `gallery(section='hot', sort, page, window='day', show_viral=True)`
-- `gallery_subreddit(subreddit, sort, window='week', page)`
-- `gallery_subreddit_image(subreddit, image_id)`
-- `gallery_tag(tag, sort, page, window='week')`
-- `gallery_tag_image(tag, item_id)`
+- `gallery(\%optional)`
+  - optional:
+    - `section` - hot (default), top, user
+    - `sort` - viral (default), top, time, rising
+    - `page` - page number
+    - `window` - day (default), week, month, year, all
+    - `show_viral` - 0 or 1 (default)
+    - `album_preview` - 0 or 1 (default)
+- `gallery_subreddit($subreddit, \%optional)`
+  - optional:
+    - `sort` - viral (default), top, time, rising
+    - `page` - page number (default: 0)
+    - `window` - day, week (default), month, year, all
+- `gallery_subreddit_image($subreddit, $image_id)`
+- `gallery_tag($tag, \%optional)`
+  - optional:
+    - `sort` - viral (default), top, time, rising
+    - `page` - page number (default: 0)
+    - `window` - day, week (default), month, year, all
+- `gallery_tag_info($tag)`
+- `gallery_item_tags_update($id, \@tags)`
+- `gallery_tags()`
 - `gallery_item_tags(item_id)`
 - `gallery_tag_vote(item_id, tag, vote)`
-- `gallery_search(q, advanced=None, sort, window='all', page)`
-- `gallery_random(page)`
-- `gallery_share_image(image_hash, title, terms=0)`
-- `gallery_share_album(album_hash)`
+- `gallery_search($query, \%optional, \%advanced)`
+  - optional:
+    - `sort` - viral, top, time (default), rising
+    - `page` - page number (default: 0)
+    - `window` - day, week, month, year, all (default)
+  - advanced (note: if advanced search parameters are set, query string is ignored):
+    - `q_all` - search for all of these words (and)
+    - `q_any` - search for any of these words (or)
+    - `q_exactly` - search for exactly this word or phrase
+    - `q_not` - exclude results matching this
+    - `q_type` - show results for file type (jpg, png, gif, anigif, album)
+    - `q_size_pix` - size ranges, small (500 pixels square or less) | med (500 to 2,000 pixels square) | big (2,000 to 5,000 pixels square) | lrg (5,000 to 10,000 pixels square) | huge (10,000 square pixels and above)
+- `gallery_share_image($id, $title, \%optional)`
+  - optional:
+    - `topic` - topic name
+    - `terms` - if the user has not accepted the terms yet, this endpoint will return an error. pass `1` to by-pass
+    - `mature` - set to `1` if the post is mature
+    - `tags` - The name of the tags you wish to associate with a post. Can be passed as an array or csv string
+- `gallery_share_album($id, $title, \%optional)`
+  - optional:
+    - `topic` - topic name
+    - `terms` - if the user has not accepted the terms yet, this endpoint will return an error. pass `1` to by-pass
+    - `mature` - set to `1` if the post is mature
+    - `tags` - The name of the tags you wish to associate with a post. Can be passed as an array or csv string
 - `gallery_remove(gallery_hash)`
 - `gallery_item(item_id)`
 - `gallery_item_vote(item_id, vote='up')`

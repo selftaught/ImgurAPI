@@ -8,6 +8,7 @@ use Data::Dumper;
 use File::Slurp;
 use HTTP::Request::Common;
 use JSON qw(decode_json);
+use List::Util qw(first);
 use LWP::UserAgent;
 use MIME::Base64;
 use Mozilla::CA;
@@ -71,6 +72,8 @@ sub request {
     my $request = new HTTP::Request($http_method, $end_point, ($http_method eq 'POST' ? $data : undef));
     my $api_resp = $self->_ua->request($request);
 
+    my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
+
     $self->{'x_ratelimit_userlimit'}      = $api_resp->{'_headers'}{'x-ratelimit-userlimit'};
     $self->{'x_ratelimit_userremaining'}  = $api_resp->{'_headers'}{'x-ratelimit-userremaining'};
     $self->{'x_ratelimit_userreset'}      = $api_resp->{'_headers'}{'x-ratelimit-userreset'};
@@ -81,7 +84,7 @@ sub request {
     $self->{'response_content'} = $api_resp->{'_content'};
 
     if ($self->format_type eq 'xml') {
-        return (XML::LibXML->new)->load_xml( string => $api_resp->{'_content'} );
+        return (XML::LibXML->new)->load_xml(string => $api_resp->{'_content'});
     }
 
     return decode_json($api_resp->{'_content'});
@@ -131,20 +134,61 @@ sub oauth2_authorize_url {
     return (ENDPOINTS->{'OAUTH_AUTHORIZE'} . "?client_id=$client_id&response_type=token&state=$state");
 }
 
-sub client_id                   { return shift->{'client_id'}                   }
-sub client_secret               { return shift->{'client_secret'}               }
-sub access_token                { return shift->{'access_token'}                }
-sub format_type                 { return shift->{'format_type'}                 }
-sub oauth_cb_state              { return shift->{'oauth_cb_state'}              }
-sub rapidapi_key                { return shift->{'rapidapi_key'}                }
-sub response                    { return shift->{'response'}                    }
-sub response_content            { return shift->{'response_content'}            }
-sub x_ratelimit_userlimit       { return shift->{'x_ratelimit_userlimit'}       }
-sub x_ratelimit_userremaining   { return shift->{'x_ratelimit_userremaining'}   }
-sub x_ratelimit_userreset       { return shift->{'x_ratelimit_userreset'}       }
-sub x_ratelimit_clientlimit     { return shift->{'x_ratelimit_clientlimit'}     }
-sub x_ratelimit_clientremaining { return shift->{'x_ratelimit_clientremaining'} }
+sub client_id {
+    return shift->{'client_id'};
+}
 
+sub client_secret {
+    return shift->{'client_secret'}
+}
+
+sub access_token {
+    return shift->{'access_token'}
+}
+
+sub format_type {
+    return shift->{'format_type'}
+}
+
+sub oauth_cb_state {
+    return shift->{'oauth_cb_state'}
+}
+
+sub rapidapi_key {
+    return shift->{'rapidapi_key'}
+}
+
+sub response {
+    return shift->{'response'}
+}
+
+sub response_content {
+    return shift->{'response_content'}
+}
+
+sub x_ratelimit_userlimit {
+    return shift->{'x_ratelimit_userlimit'}
+}
+
+sub x_ratelimit_userremaining {
+    return shift->{'x_ratelimit_userremaining'}
+}
+
+sub x_ratelimit_userreset {
+    return shift->{'x_ratelimit_userreset'}
+}
+
+sub x_ratelimit_clientlimit {
+    return shift->{'x_ratelimit_clientlimit'}
+}
+
+sub x_ratelimit_clientremaining {
+    return shift->{'x_ratelimit_clientremaining'}
+}
+
+sub _validate {
+    my $self = shift;
+}
 # Account
 sub account {
     my ($self, $user) = @_;
@@ -494,51 +538,65 @@ sub comment_report {
 sub comment_vote {
     my $self = shift;
     my $comment_id = shift or die "missing required comment_id";
-    my $vote = shift or die "missing required vote";
+    my $vote = shift // 'up';
 
     return $self->request("/comment/$comment_id/vote/$vote", 'POST');
 }
 
 # Gallery
 sub gallery {
-    my ($self, $section, $sort, $page, $window, $show_viral) = @_;
-    $section    ||= 'hot';
-    $sort       ||= 'viral';
-    $page       ||= 0;
-    $window     ||= 'day';
-    $show_viral ||= 1;
+    my $self = shift;
+    my $optional = shift // {};
+
+    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
+
+    my $section    = $optional->{'section'} // 'hot';
+    my $sort       = $optional->{'sort'} // 'viral';
+    my $page       = $optional->{'page'} // 0;
+    my $window     = $optional->{'window'} // 'day';
+    my $show_viral = $optional->{'show_viral'} // 1;
+    # my $mature     = $optional->{'mature'} // 0;
+    my $album_prev = $optional->{'album_previews'} // 1;
+
     return $self->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
 }
 
 sub gallery_subreddit {
-    my ($self, $subreddit, $sort, $window, $page) = @_;
-    $sort   ||= 'time';
-    $window ||= 'week';
-    $page   ||= 0;
+    my $self = shift;
+    my $subreddit = shift or die "missing required subreddit";
+    my $optional = shift // {};
+
+    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
+
+    my $sort = $optional->{'sort'} // 'time';
+    my $window = $optional->{'window'} // 'week';
+    my $page = $optional->{'page'} // 0;
+
     return $self->request(("/gallery/r/$subreddit/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
 sub gallery_subreddit_image {
-    my ($self, $subreddit, $id) = @_;
-    return $self->request("/gallery/r/$subreddit/$id");
+    my $self = shift;
+    my $subreddit = shift or die "missing required subreddit";
+    my $image_id = shift or die "missing required image id";
+
+    return $self->request("/gallery/r/$subreddit/$image_id");
 }
 
 sub gallery_tag {
-    my ($self, $tag, $sort, $page, $window) = @_;
-    $sort   ||= 'viral';
-    $page   ||= 0;
-    $window ||= 'week';
+    my $self = shift;
+    my $optional = shift // {};
+    my $sort = $optional->{'sort'} // 'viral';
+    my $page = $optional->{'page'} // 0;
+    my $window = $optional->{'window'} // 'week';
+
     return $self->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
-sub gallery_tag_image {
-    my ($self, $tag, $id) = @_;
-    return $self->request("/gallery/t/$tag/$id");
-}
-
-sub gallery_item_tags {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id/tags");
+sub gallery_tag_info {
+    my $self = shift;
+    my $tag = shift or die "missing required tag";
+    return $self->request("/gallery/tag_info/$tag");
 }
 
 sub gallery_tag_vote {
@@ -546,40 +604,97 @@ sub gallery_tag_vote {
     return $self->response("/gallery/$id/vote/tag/$tag/$vote", 'POST');
 }
 
-sub gallery_search {
-    my ($self, $query, $fields, $sort, $window, $page) = @_;
-    $fields ||= {};
-    $sort   ||= 'time';
-    $window ||= 'all';
-    $page   ||= 0;
-
-    my $data = {};
-
-    if ($fields) {
-        my %valid_search_keys = map { $_ => 1 } ('q_all', 'q_any', 'q_exactly', 'q_not', 'q_type', 'q_size_px');
-
-        foreach my $key (keys %{ $fields }) {
-            $data->{ $key } = $fields->{ $key } unless ! exists($valid_search_keys{ $key });
-        }
-    }
-    else {
-        $data->{'q'} = $query;
-    }
-
-    return $self->request("/gallery/search/$sort/$window/$page", 'GET', $data);
+sub gallery_tags {
+    my $self = shift;
+    return $self->request("/tags");
 }
 
-sub gallery_random {
-    my ($self, $page) = @_;
-    return $self->request("/gallery/random/random/$page");
+sub gallery_item_tags {
+    my ($self, $id) = @_;
+    return $self->request("/gallery/$id/tags");
+}
+
+sub gallery_item_tags_update {
+    my $self = shift;
+    my $id = shift or die "missing required gallery id";
+    my $tags = shift or die "missing required tags";
+    return $self->request("/gallery/$id/tags", 'POST', {'tags' => $tags});
+}
+
+# https://apidocs.imgur.com/#3c981acf-47aa-488f-b068-269f65aee3ce
+sub gallery_search {
+    my $self = shift;
+    my $query = shift;
+    my $optional = shift // {};
+    my $advanced = shift // {};
+    my $sort = $optional->{'sort'} // 'time';
+    my $window = $optional->{'window'} // 'all';
+    my $page = $optional->{'page'} // 0;
+    my $data = {};
+
+    if ($advanced) {
+        my %adv_keys = map { $_ => 1 } ('q_all', 'q_any', 'q_exactly', 'q_not', 'q_type', 'q_size_px');
+        foreach my $key (keys %{$advanced}) {
+            $data->{$key} = $advanced->{$key} unless ! exists($adv_keys{$key});
+        }
+    } elsif (!$query) {
+        die "must provide a query or advanced search parameters";
+    }
+
+    my $uri = "/gallery/search/$sort/$window/$page";
+    if (!$advanced) {
+        $uri .= "?q=$query";
+    }
+
+    return $self->request($uri, 'GET', $data);
 }
 
 sub gallery_share_image {
-    # TODO
+    my $self = shift;
+    my $image_id = shift or die "missing required image id";
+    my $title = shift or die "missing required title";
+    my $optional = shift // {};
+    my $data = {'title' => $title};
+
+    if ($optional) {
+        my @optional_keys = ('topic', 'terms', 'mature', 'tags');
+        foreach my $key (keys %{$optional}) {
+            if (first { $_ eq $key } @optional_keys) {
+                if ($key eq 'tags') {
+                    if (ref $optional->{'tags'} eq 'ARRAY') {
+                        $optional->{'tags'} = join(',', @{$optional->{'tags'}});
+                    }
+                }
+                $data->{$key} = $optional->{$key};
+            }
+        }
+    }
+
+    return $self->request("/gallery/image/$image_id", "POST", $data);
 }
 
 sub gallery_share_album {
-    # TODO
+    my $self = shift;
+    my $album_id = shift or die "missing required album id";
+    my $title = shift or die "missing required title";
+    my $optional = shift // {};
+    my $data = {'title' => $title};
+
+    if ($optional) {
+        my @optional_keys = ('topic', 'terms', 'mature', 'tags');
+        foreach my $key (keys %{$optional}) {
+            if (first { $_ eq $key } @optional_keys) {
+                if ($key eq 'tags') {
+                    if (ref $optional->{'tags'} eq 'ARRAY') {
+                        $optional->{'tags'} = join(',', @{$optional->{'tags'}});
+                    }
+                }
+                $data->{$key} = $optional->{$key};
+            }
+        }
+    }
+
+    return $self->request("/gallery/album/$album_id", "POST", $data);
 }
 
 sub gallery_remove {
