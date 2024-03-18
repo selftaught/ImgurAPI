@@ -19,10 +19,7 @@ use XML::LibXML;
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
     'RAPIDAPI'        => 'https://imgur-apiv3.p.rapidapi.com',
-    'OAUTH_ADDCLIENT' => 'https://api.imgur.com/oauth2/addclient',
     'OAUTH_AUTHORIZE' => 'https://api.imgur.com/oauth2/authorize',
-    'OAUTH_TOKEN'     => 'https://api.imgur.com/oauth2/token',
-    'OAUTH_SECRET'    => 'https://api.imgur.com/oauth2/secret'
 };
 
 sub new {
@@ -37,7 +34,7 @@ sub new {
         'format_type'    => $args->{'format_type'} // 'json',
         'rapidapi_key'   => $args->{'rapidapi_key'},
         'user_agent'     => LWP::UserAgent->new,
-        'response'       => undef
+        'response'       => undef,
         'ratelimit_hdrs' => {},
     };
 
@@ -49,7 +46,6 @@ sub _ua { shift->{'user_agent'} }
 sub request {
     my ($self, $uri, $http_method, $data, $headers) = @_;
 
-    $DB::single = 1;
     $http_method = $http_method ? uc $http_method : 'GET';
 
     my $end_point = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
@@ -62,7 +58,9 @@ sub request {
     if ($self->{'auth'}) {
         if (my $access_token = $self->{'access_token'}) {
             $self->_ua->default_header('Authorization' => "Bearer $access_token");
-        } else { die "missing required access_token" }
+        } else {
+            die "missing required access_token";
+        }
     } elsif ($self->{'client_id'}) {
         $self->_ua->default_header('Authorization' => "Client-ID " . $self->{'client_id'});
     }
@@ -95,12 +93,11 @@ sub request {
     }
 
     my $decoded = eval { decode_json $api_resp->{'_content'} };
-
     if (my $err = $@) {
-        die "failed to decode json response: $err\n";
+        die "failed to decode json response: $err";
     }
 
-    return decode_json($api_resp->{'_content'});
+    return $decoded;
 }
 
 # Setters
@@ -183,89 +180,65 @@ sub ratelimit_headers {
     return shift->{'ratelimit_headers'}
 }
 
-
-sub _validate {
-    my $self = shift;
-}
 # Account
 sub account {
-    my ($self, $user) = @_;
+    my $self = shift;
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user");
 }
 
 sub account_album {
     my $self = shift;
-    my $user = shift || 'me';
-    my $hash = shift or die "missing required album hash\n";
-    return $self->request("/account/$user/album/$hash");
-}
-
-sub account_album_ids {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $page = shift || 1;
-    return $self->request("/account/$user/ids/$page");
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required album id";
+    return $self->request("/account/$user/album/$id");
 }
 
 sub account_album_count {
     my $self = shift;
-    my $user = shift || 'me';
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user/albums/count");
 }
 
 sub account_album_delete {
     my $self = shift;
-    my $user = shift || 'me';
-    my $hash = shift or die "missing required album hash\n";
-    return $self->request("/account/$user/album/$hash", 'DELETE');
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required album id";
+    return $self->request("/account/$user/album/$id", 'DELETE');
+}
+
+sub account_album_ids {
+    my $self = shift;
+    my $user = shift or die "missing requied username";
+    my $opts = shift // {};
+    my $page = $opts->{'page'} // 0;
+    return $self->request("/account/$user/ids/$page");
 }
 
 sub account_albums {
     my $self = shift;
-    my $user = shift || 'me';
-    my $page = shift || 1;
+    my $user = shift or die "missing requied username";
+    my $opts = shift // {};
+    my $page = $opts->{'page'} // 0;
     return $self->request("/account/$user/albums/$page");
 }
 
-sub account_comments {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $sort = shift // 'newest';
-    my $page = shift || 1;
-    return $self->request("/account/$user/comments/$sort/$page");
-}
-
-sub account_comment {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $id   = shift or die "missing required comment id\n";
-    return $self->request("/account/$user/comment/$id");
-}
-
-sub account_comment_ids {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $sort = shift // 'newest';
-    my $page = shift || 1;
-    return $self->request("/account/$user/comments/ids/$sort/$page");
-}
-
-sub account_comment_count {
-    my $self = shift;
-    my $user = shift || 'me';
-    return $self->request("/account/$user/comments/count");
-}
-
-sub account_comment_delete {
-    my $self = shift;
-    my $user = shift || 'me';
-    my $id   = shift or die "missing required comment id\n";
-    return $self->request("/account/$user/comment/$id", 'DELETE');
-}
-
 sub account_block_status {
-    my ($self, $user) = @_;
+    my $self = shift;
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user/block");
+}
+
+sub account_block_create {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    return $self->request("/account/v1/$user/block", 'POST');
+}
+
+sub account_block_delete {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    return $self->request("/account/v1/$user/block", 'DELETE');
 }
 
 sub account_blocks {
@@ -273,89 +246,133 @@ sub account_blocks {
     return $self->request("/account/me/block");
 }
 
-sub account_block_create {
-    my ($self, $user) = @_;
-    return $self->request("/account/v1/$user/block", 'POST');
+sub account_comment {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required comment id";
+    return $self->request("/account/$user/comment/$id");
 }
 
-sub account_block_delete {
-    my ($self, $user) = @_;
-    return $self->request("/account/v1/$user/block", 'DELETE');
+sub account_comment_count {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    return $self->request("/account/$user/comments/count");
+}
+
+sub account_comment_delete {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required comment id";
+    return $self->request("/account/$user/comment/$id", 'DELETE');
+}
+
+sub account_comment_ids {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'newest';
+    my $page = $opts->{'page'} // 0;
+    return $self->request("/account/$user/comments/ids/$sort/$page");
+}
+
+sub account_comments {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'newest';
+    my $page = $opts->{'page'} // 0;
+    return $self->request("/account/$user/comments/$sort/$page");
 }
 
 # https://apidocs.imgur.com/#dcdbad18-260a-4501-8618-a26e7ccb8596
 sub account_delete {
     my $self = shift;
-    my $client_id = shift or die "missing required client id\n";
-    my $body = shift or die "missing required post body\n";
+    my $client_id = shift or die "missing required client id";
+    my $body = shift or die "missing required post body";
     return $self->request("/account/me/delete?client_id=$client_id", 'POST', $body);
 }
 
 sub account_favorites {
     my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/favorites");
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'newest';
+    my $page = $opts->{'page'} // 0;
+    return $self->request("/account/$user/favorites/$page/$sort");
 }
 
 sub account_gallery_favorites {
     my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
-    my $sort = shift // 'newest';
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'newest';
+    my $page = $opts->{'page'} // 0;
     return $self->request("/account/$user/gallery_favorites/$page/$sort");
 }
 
 sub account_image {
     my $self = shift;
-    my $user = shift // 'me';
-    my $id   = shift or die "missing required image id\n";
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required image id";
     return $self->request("/account/$user/image/$id");
+}
+
+sub account_image_count {
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    return $self->request("/account/$user/images/count");
 }
 
 sub account_image_delete {
     my $self = shift;
-    my $user = shift // 'me';
-    my $id   = shift or die "missing required image delete has\n";
+    my $user = shift or die "missing required username";
+    my $id   = shift or die "missing required image id";
     return $self->request("/account/$user/image/$id", 'DELETE');
 }
 
 sub account_image_ids {
     my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $page = $opts->{'page'} // 0;
     return $self->request("/account/$user/image/ids/$page");
 }
 
 sub account_images {
     my $self = shift;
-    my $user = shift // 'me';
-    return $self->request("/account/$user/images");
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $page = $opts->{'page'} // 0;
+    return $self->request("/account/$user/images/$page");
 }
 
 sub account_reply_notifications {
     my $self = shift;
-    my $user = shift || 'me';
-    my $new  = shift // 1;
-    return $self->request("/account/$user/notifications/replies");
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $new  = $opts->{'new'} // 1;
+    return $self->request("/account/$user/notifications/replies?new=$new");
 }
 
 sub account_settings {
-    my ($self, $user) = @_;
+    my $self = shift;
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user/settings");
 }
 
 sub account_settings_update {
-    my ($self, $user, $settings) = @_;
-    my %valid_setting_fields = map { $_ => 1 } ('bio', 'public_images', 'messaging_enabled', 'album_privacy', 'accepted_gallery_terms', 'username');
+    my $self = shift;
+    my $user = shift or die "missing required username";
+    my $settings = shift // {};
+    my @valid_settings = (qw(bio public_images messaging_enabled album_privacy accepted_gallery_terms username show_mature newsletter_subscribed));
+    my %valid_settings_map = map { $_ => 1 } @valid_settings;
     my $data = {};
 
-    die("Error: you must provide a hashref to the new account settings\n") unless $settings;
-
-    foreach my $key (keys %{ $settings }) {
-        $data->{ $key } = $settings->{ $key } unless ! exists($valid_setting_fields{ $key });
+    foreach my $key (keys %{$settings}) {
+        $data->{$key} = $settings->{$key} if exists $valid_settings_map{$key};
     }
 
-    return $self->request("/account/$user/settings", 'POST', $data);
+    return $self->request("/account/$user/settings", 'PUT', $data);
 }
 
 sub account_submissions {
@@ -365,17 +382,15 @@ sub account_submissions {
     return $self->request("/account/$user/submissions/$page");
 }
 
-# https://apidocs.imgur.com/#1f3f60f1-fc3f-4d06-b1c5-9bfc3610dacf
 sub account_tag_follow {
     my $self = shift;
-    my $tag  = shift or die "missing required tag\n";
+    my $tag  = shift or die "missing required tag";
     return $self->request("/account/me/follow/tag/$tag", 'POST');
 }
 
-# https://apidocs.imgur.com/#952bcee4-aab9-4679-9261-04845c59355e
 sub account_tag_unfollow {
     my $self = shift;
-    my $tag  = shift or die "missing required tag\n";
+    my $tag  = shift or die "missing required tag";
     return $self->request("/account/me/follow/tag/$tag", 'DELETE');
 }
 
@@ -400,13 +415,13 @@ sub album {
 # TODO: test this
 sub album_create {
     my $self = shift;
-    my $params = shift // {};
-    my @optional_params = (qw(ids deletehashes title description privacy layout cover));
-    my %valid_params = map { $_ => 1 } @optional_params;
+    my $opts = shift // {};
+    my @opt_keys = (qw(ids deletehashes title description privacy layout cover));
+    my %valid_opts = map { $_ => 1 } @opt_keys;
     my $data = {};
 
-    foreach my $param (keys %{$params}) {
-        $data->{$param} = $params->{$param} unless ! exists($valid_params{$param});
+    foreach my $opt (keys %{$opts}) {
+        $data->{$opt} = $opts->{$opt} if exists $valid_opts{$opt};
     }
 
     return $self->request("/album", 'POST', $data);
@@ -544,16 +559,16 @@ sub comment_vote {
 # Gallery
 sub gallery {
     my $self = shift;
-    my $optional = shift // {};
+    my $opts = shift // {};
 
-    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
+    die "optional data must be a hashref" if ref $opts ne 'HASH';
 
-    my $section    = $optional->{'section'} // 'hot';
-    my $sort       = $optional->{'sort'} // 'viral';
-    my $page       = $optional->{'page'} // 0;
-    my $window     = $optional->{'window'} // 'day';
-    my $show_viral = $optional->{'show_viral'} // 1;
-    my $album_prev = $optional->{'album_previews'} // 1;
+    my $section    = $opts->{'section'} // 'hot';
+    my $sort       = $opts->{'sort'} // 'viral';
+    my $page       = $opts->{'page'} // 0;
+    my $window     = $opts->{'window'} // 'day';
+    my $show_viral = $opts->{'show_viral'} // 1;
+    my $album_prev = $opts->{'album_previews'} // 1;
 
     return $self->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
 }
@@ -592,16 +607,16 @@ sub gallery_item_comment_info {
 sub gallery_item_comments {
     my $self = shift;
     my $id = shift or die "missing required image/album id";
-    my $optional = shift // {};
-    my $sort = $optional->{'sort'} // 'best';
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'best';
     return $self->request("/gallery/$id/comments/$sort");
 }
 
 sub gallery_item_report {
     my $self = shift;
     my $id = shift or die "missing required image/album id";
-    my $optional = shift // {};
-    my $reason = $optional->{'reason'};
+    my $opts = shift // {};
+    my $reason = $opts->{'reason'};
     my %data = ($reason ? (reason => $reason) : ());
 
     $data{'reason'} = $reason if $reason;
@@ -644,11 +659,11 @@ sub gallery_image_remove {
 sub gallery_search {
     my $self = shift;
     my $query = shift;
-    my $optional = shift // {};
+    my $opts = shift // {};
     my $advanced = shift // {};
-    my $sort = $optional->{'sort'} // 'time';
-    my $window = $optional->{'window'} // 'all';
-    my $page = $optional->{'page'} // 0;
+    my $sort = $opts->{'sort'} // 'time';
+    my $window = $opts->{'window'} // 'all';
+    my $page = $opts->{'page'} // 0;
     my $data = {};
 
     if ($advanced) {
@@ -667,19 +682,19 @@ sub gallery_share_image {
     my $self = shift;
     my $image_id = shift or die "missing required image id";
     my $title = shift or die "missing required title";
-    my $optional = shift // {};
+    my $opts = shift // {};
     my $data = {'title' => $title};
 
-    if ($optional) {
+    if ($opts) {
         my @optional_keys = ('topic', 'terms', 'mature', 'tags');
-        foreach my $key (keys %{$optional}) {
+        foreach my $key (keys %{$opts}) {
             if (first { $_ eq $key } @optional_keys) {
                 if ($key eq 'tags') {
-                    if (ref $optional->{'tags'} eq 'ARRAY') {
-                        $optional->{'tags'} = join(',', @{$optional->{'tags'}});
+                    if (ref $opts->{'tags'} eq 'ARRAY') {
+                        $opts->{'tags'} = join(',', @{$opts->{'tags'}});
                     }
                 }
-                $data->{$key} = $optional->{$key};
+                $data->{$key} = $opts->{$key};
             }
         }
     }
@@ -691,19 +706,19 @@ sub gallery_share_album {
     my $self = shift;
     my $album_id = shift or die "missing required album id";
     my $title = shift or die "missing required title";
-    my $optional = shift // {};
+    my $opts = shift // {};
     my $data = {'title' => $title};
 
-    if ($optional) {
+    if ($opts) {
         my @optional_keys = ('topic', 'terms', 'mature', 'tags');
-        foreach my $key (keys %{$optional}) {
+        foreach my $key (keys %{$opts}) {
             if (first { $_ eq $key } @optional_keys) {
                 if ($key eq 'tags') {
-                    if (ref $optional->{'tags'} eq 'ARRAY') {
-                        $optional->{'tags'} = join(',', @{$optional->{'tags'}});
+                    if (ref $opts->{'tags'} eq 'ARRAY') {
+                        $opts->{'tags'} = join(',', @{$opts->{'tags'}});
                     }
                 }
-                $data->{$key} = $optional->{$key};
+                $data->{$key} = $opts->{$key};
             }
         }
     }
@@ -714,13 +729,13 @@ sub gallery_share_album {
 sub gallery_subreddit {
     my $self = shift;
     my $subreddit = shift or die "missing required subreddit";
-    my $optional = shift // {};
+    my $opts = shift // {};
 
-    die "optional data must be a hashref\n" if ref $optional ne 'HASH';
+    die "optional data must be a hashref" if ref $opts ne 'HASH';
 
-    my $sort = $optional->{'sort'} // 'time';
-    my $window = $optional->{'window'} // 'week';
-    my $page = $optional->{'page'} // 0;
+    my $sort = $opts->{'sort'} // 'time';
+    my $window = $opts->{'window'} // 'week';
+    my $page = $opts->{'page'} // 0;
 
     return $self->request(("/gallery/r/$subreddit/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
@@ -734,25 +749,20 @@ sub gallery_subreddit_image {
 }
 
 sub gallery_tag {
-    my $self = shift;
-    my $tag = shift or die "missing required tag";
-    my $optional = shift // {};
-    my $sort = $optional->{'sort'} // 'viral';
-    my $page = $optional->{'page'} // 0;
-    my $window = $optional->{'window'} // 'week';
+    my $self   = shift;
+    my $tag    = shift or die "missing required tag";
+    my $opts   = shift // {};
+    my $sort   = $opts->{'sort'} // 'viral';
+    my $page   = $opts->{'page'} // 0;
+    my $window = $opts->{'window'} // 'week';
 
     return $self->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
 }
 
 sub gallery_tag_info {
     my $self = shift;
-    my $tag = shift or die "missing required tag";
+    my $tag  = shift or die "missing required tag";
     return $self->request("/gallery/tag_info/$tag");
-}
-
-sub gallery_tag_vote {
-    my ($self, $id, $tag, $vote) = @_;
-    return $self->response("/gallery/$id/vote/tag/$tag/$vote", 'POST');
 }
 
 sub gallery_tags {
@@ -763,29 +773,29 @@ sub gallery_tags {
 # Image
 sub image {
     my $self = shift;
-    my $id = shift or die "missing required image id";
+    my $id   = shift or die "missing required image id";
     return $self->request("/image/$id");
 }
 
 sub image_upload {
     my $self = shift;
-    my $src = shift or die "missing required image/video src";
+    my $src  = shift or die "missing required image/video src";
     my $type = shift or die "missing required image/video type";
-    my $optional = shift // {};
+    my $opts = shift // {};
     my $data = {'image' => $src, 'type' => $type};
-    my %headers = ();
+    my %hdrs = ();
 
-    $data->{'title'} = $optional->{'title'} if $optional->{'title'};
-    $data->{'description'} = $optional->{'description'} if $optional->{'description'};
+    $data->{'title'} = $opts->{'title'} if $opts->{'title'};
+    $data->{'description'} = $opts->{'description'} if $opts->{'description'};
 
     if ($type eq 'file') {
-        die "file doesnt exist at path: $src\n" unless -e $src;
-        die "provided src file path is not a file\n" unless -f $src;
-        $data->{'image'} = [ $src ];
-        $headers{Content_Type} = 'form-data';
+        die "file doesnt exist at path: $src" unless -e $src;
+        die "provided src file path is not a file" unless -f $src;
+        $data->{'image'} = [$src];
+        $hdrs{Content_Type} = 'form-data';
     }
 
-    return $self->request("/image", 'POST', $data, \%headers);
+    return $self->request("/image", 'POST', $data, \%hdrs);
 }
 
 sub image_delete {
@@ -796,22 +806,43 @@ sub image_delete {
 
 sub image_favorite {
     my $self = shift;
-    my $id = shift or die "missing required image id";
+    my $id   = shift or die "missing required image id";
     return $self->request("/image/$id/favorite", 'POST');
 }
 
 sub image_update {
     my $self = shift;
-    my $id = shift or die "missing required image id";
-    my $optional = shift // {};
-    return $self->request("/image/$id", 'POST', $optional);
+    my $id   = shift or die "missing required image id";
+    my $opts = shift // {};
+    return $self->request("/image/$id", 'POST', $opts);
 }
-
 
 # Feed
 sub feed {
     my $self = shift;
     return $self->request("/feed");
 }
+
+=head1 NAME
+
+
+=head1 DESCRIPTION
+
+
+=head1 SYNOPSIS
+
+
+=head1 AUTHOR
+
+Dillan Hildebrand
+
+=head1 LICENSE
+
+MIT
+
+=head1 INSTALLATION
+
+
+=cut
 
 1;

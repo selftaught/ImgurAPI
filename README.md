@@ -13,7 +13,7 @@ ImgurAPI is a perl5 client library for interfacing with Imgur's API endpoints.
 ### Instantiating the client
 
 ```perl
-my $client = ImgurAPI->new( \%options );
+my $client = ImgurAPI->new( \%optional );
 ```
 
 Valid options are:
@@ -29,16 +29,16 @@ _note that all are optional but the library will throw if its needed and not def
   - api endpoint response format type
   - valid values are `json` (default) and `xml`
 - `oauth_cb_state`
-  - parameter appended to oauth2 authorization url returned from `get_oauth2_url()` which may be useful to your application upon receipt of the response.
+  - parameter appended to oauth2 authorization url returned from `oauth2_authorize_url()` which may be useful to your application upon receipt of the response.
 
 ### Authorization
 
 If you haven't already, register an application for an OAuth2 client ID and secret [here](https://api.imgur.com/oauth2/addclient).
 
-You will need to authorize your OAuth2 application if you haven't already done so. You can get the authorization URL with `get_oauth2_url`:
+You will need to authorize your OAuth2 application if you haven't already done so. You can get the authorization URL with `oauth2_authorize_url`:
 
 ```perl
-my $auth_url = $client->get_oauth2_url();
+my $auth_url = $client->oauth2_authorize_url();
 
 # return to user's browser for manual authorization
 ```
@@ -59,36 +59,97 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Account
 
-- `account(username)`
-- `account_album_count(username)`
-- `account_album_count(username)`
-- `account_album_ids(username, page)`
-- `account_albums(username, page)`
-- `account_block_create(username)`
-- `account_block_status(username)`
-- `account_blocks(username)`
-- `account_comment(username, id)`
-- `account_comment_count(username)`
-- `account_comment_delete(username, id)`
-- `account_comment_ids(username, sort, page)`
-- `account_comments(username, sort, page)`
-- `account_delete(client_id, body)`
-- `account_favorites(username)`
-- `account_tag_follow(tag_name)`
-- `account_tag_unfollow(tag_name)`
-- `account_gallery_favorites(username, page, sort)`
-- `account_image(username, id)`
-- `account_image_delete(username, id)`
-- `account_image_ids(username, page)`
-- `account_images(username, page)`
-- `account_images(username)`
-- `account_reply_notifications(username, new)`
-- `account_settings(username)`
-- `account_settings_update(username, fields)`
-- `account_submissions(username, page)`
-- `account_tag_unfollow(tag_name)`
-- `account_verify_email_send(username)`
-- `account_verify_email_status(username)`
+- `account($username)` - get information about an account
+  - `$username` - string - imgur account username
+- `account_album($username, $album_id)` - get information about an account album
+  - `$username` - string - imgur account username
+  - `$album_id` - int|string - album id
+- `account_album_count($username)` - get the count of account albums
+  - `$username` - string - imgur account username
+- `account_album_delete($username, $album_id)` - delete an account album
+  - `$username` - string - imgur account username
+  - `$album_id` - int|string - album id
+- `account_album_ids($username, \%optional)` - get a list of account album ids
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional parameters
+    - `page` - int|str - page number
+- `account_albums($username, \%optional)` - list account albums
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional parameters
+    - `page` - int|str - page number
+- `account_block_create($username)` - block a user
+  - `$username` - string - imgur account username to block
+- `account_block_status($username)` - determine if the user making the request has blocked a username
+  - `$username` - string - imgur account username to check if is blocked
+- `account_blocks()` - list all accounts being blocked by the requesting account
+- `account_comment($username, $comment_id)` - get information about a comment
+  - `$username` - string - imgur account username
+  - `$comment_id` - string - comment id
+- `account_comment_count($username)`
+  - `$username` - string - imgur account username
+- `account_comment_delete($username, $comment_id)`
+  - `$username` - string - imgur account username
+  - `$comment_id` - string - comment id
+- `account_comment_ids($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional parameters
+    - `page` - int|string - page number
+    - `sort` - string - best, worst, oldest or newest (default)
+- `account_comments($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional parameters
+    - `page` - int|string - page number
+    - `sort` - string - best, worst, oldest or newest (default)
+- `account_delete($password, \%optional)`
+  - `$password` - string - imgur account password
+  - `\%optional` - hashref - hashref of optional params
+    - `reasons` - arrayref of strings - reasons for deleting account
+    - `feedback` - string - feedback for imgur
+- `account_favorites($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `page` - int|string - page number (default: 0)
+    - `sort` - string - oldest or newest (default)
+- `account_tag_follow($tag_name)`
+  - `$tag_name` - string - tag to follow
+- `account_tag_unfollow($tag_name)`
+  - `$tag_name` - string - tag to unfollow
+- `account_gallery_favorites($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `page` - int|string - page number (default: 0)
+    - `sort` - string - oldest or newest (default)
+- `account_image($username, $image_id)` - get info about an image
+  - `$username` - string - imgur account username
+  - `$image_id` - string - image id to get information about
+- `account_image_count($username)`
+  - `$username` - string - imgur account username
+- `account_image_delete($username, $image_id)` - delete an image
+  - `$username` - string - imgur account username
+  - `$image_id` - string - image id to delete
+- `account_image_ids($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `page` - int|string - page number (default: 0)
+- `account_images($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `page` - int|string - page number (default: 0)
+- `account_reply_notifications($username, new)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `new` - int|boolean - 1 for unviewed notification and 0 for viewed (default: 1)
+- `account_settings($username)`
+  - `$username` - string - imgur account username
+- `account_settings_update($username, \%settings)`
+  - `$username` - string - imgur account username
+  - `\%settings` - hashref - hashref of settings to update
+    - `bio` - string - biography displayed on the account
+    - `public_images` - int|boolean - set images to private or public by default
+    - `messaging_enabled` - int|boolean - enable / disable private messages
+- `account_submissions($username, page)`
+- `account_verify_email_send($username)`
+- `account_verify_email_status($username)`
 
 ### Album
 
@@ -179,7 +240,6 @@ The client library doesn't handle refreshing the access token for you automatica
     - `page` - page number (default: 0)
     - `window` - day, week (default), month, year, all
 - `gallery_tag_info($tag)`
-- `gallery_tag_vote(item_id, tag, vote)`
 - `gallery_tags()`
 
 ### Image
