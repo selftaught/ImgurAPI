@@ -364,7 +364,7 @@ sub account_settings_update {
     my $self = shift;
     my $user = shift or die "missing required username";
     my $settings = shift // {};
-    my @valid_settings = (qw(bio public_images messaging_enabled album_privacy accepted_gallery_terms username show_mature newsletter_subscribed));
+    my @valid_settings = (qw(bio public_images messaging_enabled accepted_gallery_terms username show_mature newsletter_subscribed));
     my %valid_settings_map = map { $_ => 1 } @valid_settings;
     my $data = {};
 
@@ -377,8 +377,9 @@ sub account_settings_update {
 
 sub account_submissions {
     my $self = shift;
-    my $user = shift // 'me';
-    my $page = shift || 1;
+    my $user = shift or die "missing required username";
+    my $opts = shift // {};
+    my $page = $opts->{'page'} // 0;
     return $self->request("/account/$user/submissions/$page");
 }
 

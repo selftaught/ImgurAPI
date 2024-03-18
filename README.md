@@ -147,21 +147,30 @@ The client library doesn't handle refreshing the access token for you automatica
     - `bio` - string - biography displayed on the account
     - `public_images` - int|boolean - set images to private or public by default
     - `messaging_enabled` - int|boolean - enable / disable private messages
-- `account_submissions($username, page)`
+    - `accepted_gallery_terms` - int|boolean - user agreement to imgur gallery terms
+    - `username` - string - valid username between 4 and 63 alphanumeric characters
+    - `show_mature` - int|boolean - toggle display of mature content
+    - `newsletter_subscribed` - int|boolean - toggle subscription to email newsletter
+- `account_submissions($username, \%optional)`
+  - `$username` - string - imgur account username
+  - `\%optional` - hashref - hashref of optional params
+    - `page` - int|string - page number (default: 0)
 - `account_verify_email_send($username)`
+  - `$username` - string - imgur account username
 - `account_verify_email_status($username)`
+  - `$username` - string - imgur account username
 
 ### Album
 
-- `album(album_id)`
-- `album_images(album_id)`
+- `album($album_id)`
+- `album_images($album_id)`
 - `album_create(fields)`
-- `album_update(album_id, fields)`
-- `album_delete(album_id)`
-- `album_favorite(album_id)`
-- `album_set_images(album_id, ids)`
-- `album_add_images(album_id, ids)`
-- `album_delete_images(album_id, ids)`
+- `album_update($album_id, fields)`
+- `album_delete($album_id)`
+- `album_favorite($album_id)`
+- `album_set_images($album_id, ids)`
+- `album_add_images($album_id, ids)`
+- `album_delete_images($album_id, ids)`
 
 ### Comment
 
