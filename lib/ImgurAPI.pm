@@ -409,7 +409,8 @@ sub account_verify_email_status {
 
 # Album
 sub album {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id   = shift or die "missing required album id";
     return $self->request("/album/$id");
 }
 
@@ -429,14 +430,15 @@ sub album_create {
 }
 
 sub album_delete {
-    my ($self, $id) = @_;
+    my $self = shift;
+    my $id   = shift or die "missing required album id";
     return $self->request("/album/$id", 'DELETE');
 }
 
 sub album_favorite {
     my $self = shift;
-    my $album_id = shift or die "missing required album id";
-    return $self->request("/album/$album_id/favorite", 'POST');
+    my $id   = shift or die "missing required album id";
+    return $self->request("/album/$id/favorite", 'POST');
 }
 
 sub album_image {

@@ -163,23 +163,37 @@ The client library doesn't handle refreshing the access token for you automatica
 ### Album
 
 - `album($album_id)`
+  - `$album_id` - string
 - `album_images($album_id)`
-- `album_create(fields)`
+  - `$album_id` - string
+- `album_create(\%options)`
+  - `\%options`
+    - `ids` - arrayref
+    - `deletehashes` - arrayref
+    - `title` - string
+    - `description` - string
+    - `cover` - string
 - `album_update($album_id, fields)`
+  - `$album_id` - string
 - `album_delete($album_id)`
+  - `$album_id` - string
 - `album_favorite($album_id)`
+  - `$album_id` - string
 - `album_set_images($album_id, ids)`
+  - `$album_id` - string
 - `album_add_images($album_id, ids)`
+  - `$album_id` - string
 - `album_delete_images($album_id, ids)`
+  - `$album_id` - string
 
 ### Comment
 
-- `comment(comment_id)`
-- `comment_delete(comment_id)`
-- `comment_replies(comment_id)`
-- `comment_reply(comment_id, image_id, comment)`
-- `comment_vote(comment_id, vote='up')`
-- `comment_report(comment_id)`
+- `comment($comment_id)`
+- `comment_delete($comment_id)`
+- `comment_replies($comment_id)`
+- `comment_reply($comment_id, $image_id, $comment)`
+- `comment_vote($comment_id, vote='up')`
+- `comment_report($comment_id)`
 
 ### Gallery
 
@@ -253,20 +267,19 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Image
 
-- `image($id)`
+- `image($image_id)`
 - `image_upload($src, \%optional)`
   - `src` image or video source - can be one of type: file, url, base64 or raw string
   - `type` image or video source type - can be one of: file, url, base64 or raw string
   - `optional` optional data can include
     - `title` - title of the content
     - `description` - description of the content
-- `image_delete($id)`
-- `image_favorite($id)`
-- `image_update($id, \%optional)`
+- `image_delete($image_id)`
+- `image_favorite($image_id)`
+- `image_update($image_id, \%optional)`
   - optional:
     - `title` - content title
     - `description` - content description
-
 
 ### Feed
 
