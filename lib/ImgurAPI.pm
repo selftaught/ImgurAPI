@@ -72,11 +72,15 @@ sub request {
     }
 
     my $request;
-    if ($http_method ne 'POST') {
-        $request = HTTP::Request->new($http_method, $end_point);
-    } else {
+    if ($http_method eq 'POST') {
         $request = HTTP::Request::Common::POST($end_point, %{$headers // {}}, Content => $data);
+    } elsif ($http_method eq 'PUT') {
+        $request = HTTP::Request::Common::PUT($end_point, %{$headers // {}}, Content => $data);
+    } else {
+        $request = HTTP::Request->new($http_method, $end_point);
     }
+
+    print Dumper $request if $ENV{'DEBUG'};
 
     my $api_resp = $self->_ua->request($request);
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
@@ -397,13 +401,13 @@ sub account_tag_unfollow {
 
 sub account_verify_email_send {
     my $self = shift;
-    my $user = shift // 'me';
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user/verifyemail", 'POST');
 }
 
 sub account_verify_email_status {
     my $self = shift;
-    my $user = shift // 'me';
+    my $user = shift or die "missing required username";
     return $self->request("/account/$user/verifyemail");
 }
 
@@ -414,16 +418,18 @@ sub album {
     return $self->request("/album/$id");
 }
 
-# TODO: test this
 sub album_create {
     my $self = shift;
     my $opts = shift // {};
-    my @opt_keys = (qw(ids deletehashes title description privacy layout cover));
+    my @opt_keys = (qw(ids deletehashes title description cover));
     my %valid_opts = map { $_ => 1 } @opt_keys;
     my $data = {};
 
     foreach my $opt (keys %{$opts}) {
-        $data->{$opt} = $opts->{$opt} if exists $valid_opts{$opt};
+        if (exists $valid_opts{$opt}) {
+            my $key = $opt eq 'ids' || $opt eq 'deletehashes' ? $opt.'[]' : $opt;
+            $data->{$key} = $opts->{$opt};
+        }
     }
 
     return $self->request("/album", 'POST', $data);
@@ -458,7 +464,7 @@ sub album_images_add {
     my $self = shift;
     my $album_id = shift or die "missing required album_id";
     my $image_ids = shift or die "missing required image_ids";
-    return $self->request("/album/$album_id/add", 'POST', $image_ids);
+    return $self->request("/album/$album_id/add", 'POST', {'ids[]' => $image_ids});
 }
 
 sub album_images_delete {
@@ -472,20 +478,21 @@ sub album_images_set {
     my $self = shift;
     my $album_id = shift or die "missing required album_id";
     my $image_ids = shift or die "missing required image_ids";
-    return $self->request("/album/$album_id", 'POST', $image_ids);
+    return $self->request("/album/$album_id", 'POST', {'ids[]' => $image_ids});
 }
 
-# TODO: test this
 sub album_update {
     my $self = shift;
     my $album_id = shift or die "missing required album_id";
-    my $params = shift // {};
-    my @optional_params = (qw(ids deletehashes title description privacy layout cover));
-    my %valid_params = map { $_ => 1 } @optional_params;
+    my $opts = shift // {};
+    my %valid_opts = map { $_ => 1 } (qw(ids deletehashes title description cover));
     my $data = {};
 
-    foreach my $param (keys %{$params}) {
-        $data->{$param} = $params->{$param} unless ! exists($valid_params{$param});
+    foreach my $opt (keys %{$opts}) {
+        if (exists $valid_opts{$opt}) {
+            my $key = $opt eq 'ids' || $opt eq 'deletehashes' ? $opt.'[]' : $opt;
+            $data->{$key} = $opts->{$opt};
+        }
     }
 
     return $self->request("/album/$album_id", 'PUT', $data);
@@ -513,8 +520,8 @@ sub comment_create {
 
 sub comment_delete {
     my $self = shift;
-    my $image_id = shift or die "missing required image id";
-    return $self->request("/comment/$image_id", 'DELETE');
+    my $comment_id = shift or die "missing required comment id";
+    return $self->request("/comment/$comment_id", 'DELETE');
 }
 
 sub comment_replies {
@@ -531,10 +538,10 @@ sub comment_reply {
 
     my $data = {
         'image_id' => $image_id,
-        'comment'  => $comment
+        'comment'  => $comment,
     };
 
-    $self->request("/comment/$comment_id", 'POST', $data);
+    return $self->request("/comment/$comment_id", 'POST', $data);
 }
 
 # TODO: test this
@@ -544,9 +551,7 @@ sub comment_report {
     my $reason = shift;
     my $data = {};
 
-    if ($reason) {
-        $data->{'reason'} = $reason;
-    }
+    $data->{'reason'} = $reason if $reason;
 
     return $self->request("/comment/$comment_id/report", 'POST', $data);
 }
@@ -554,7 +559,7 @@ sub comment_report {
 sub comment_vote {
     my $self = shift;
     my $comment_id = shift or die "missing required comment_id";
-    my $vote = shift // 'up';
+    my $vote = shift or die "missing required vote";
 
     return $self->request("/comment/$comment_id/vote/$vote", 'POST');
 }

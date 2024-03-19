@@ -173,27 +173,43 @@ The client library doesn't handle refreshing the access token for you automatica
     - `title` - string
     - `description` - string
     - `cover` - string
-- `album_update($album_id, fields)`
+- `album_update($album_id, \%options)`
   - `$album_id` - string
+  - `\%options`
+    - `ids` - arrayref
+    - `deletehashes` - arrayref
+    - `title` - string
+    - `description` - string
+    - `cover` - string
 - `album_delete($album_id)`
   - `$album_id` - string
 - `album_favorite($album_id)`
   - `$album_id` - string
-- `album_set_images($album_id, ids)`
+- `album_images_set($album_id, \@ids)`
   - `$album_id` - string
-- `album_add_images($album_id, ids)`
+  - `\@ids` - arrayref
+- `album_images_add($album_id, \@ids)`
   - `$album_id` - string
-- `album_delete_images($album_id, ids)`
+  - `\@ids` - arrayref
+- `album_images_delete($album_id, \@ids)`
   - `$album_id` - string
+  - `\@ids` - arrayref
 
 ### Comment
 
-- `comment($comment_id)`
+- `comment($comment_id)` - get comment info
+  - `$comment_id` - string
 - `comment_delete($comment_id)`
+  - `$comment_id` - string
 - `comment_replies($comment_id)`
+  - `$comment_id` - string
 - `comment_reply($comment_id, $image_id, $comment)`
-- `comment_vote($comment_id, vote='up')`
+  - `$comment_id` - string
+- `comment_vote($comment_id, $vote)`
+  - `$comment_id` - string
+  - `$vote` - string - can be 'up', 'down' or 'veto'
 - `comment_report($comment_id)`
+  - `$comment_id` - string
 
 ### Gallery
 
