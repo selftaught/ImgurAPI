@@ -1,6 +1,6 @@
 # ImgurAPI perl library
 
-ImgurAPI is a perl5 client library for interfacing with Imgur's API endpoints.
+ImgurAPI::Client is a perl5 client library for interfacing with Imgur's API endpoints.
 
 ## Installation
 
@@ -13,7 +13,7 @@ ImgurAPI is a perl5 client library for interfacing with Imgur's API endpoints.
 ### Instantiating the client
 
 ```perl
-my $client = ImgurAPI->new( \%optional );
+my $client = ImgurAPI::Client->new( \%optional );
 ```
 
 Valid options are:
