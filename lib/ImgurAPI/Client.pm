@@ -46,31 +46,32 @@ sub _ua { shift->{'user_agent'} }
 sub request {
     my ($self, $uri, $http_method, $data, $hdr) = @_;
 
-    $http_method = $http_method ? uc $http_method : 'GET';
+    # Ensure HTTP method is uppercase
+    $http_method = uc($http_method // 'GET');
 
-    my $endpoint = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
+    # Determine endpoint based on API key presence
+    my $endpoint = $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri;
 
-    $endpoint  = ($uri =~ /^http(?:s)?/ ? $uri : $endpoint);
+    # Append format type and method to the endpoint
     $endpoint .= ($endpoint =~ /\?/ ? '&' : '?') . '_format=' . $self->{'format_type'} . "&_method=$http_method";
 
-    $self->_ua->default_header('User-Agent' => "ImgurAPI-perl-lib/0.1");
+    # Set User-Agent header
+    $self->_ua->default_header('User-Agent' => "ImgurAPI::Client/1.0.0");
 
+    # Set Authorization header based on authentication type
     if ($self->{'auth'}) {
-        if (my $access_token = $self->{'access_token'}) {
-            $self->_ua->default_header('Authorization' => "Bearer $access_token");
-        } else {
-            die "missing required access_token";
-        }
+        my $access_token = $self->{'access_token'} // die "Missing required access_token";
+        $self->_ua->default_header('Authorization' => "Bearer $access_token");
     } elsif ($self->{'client_id'}) {
         $self->_ua->default_header('Authorization' => "Client-ID " . $self->{'client_id'});
     }
 
-    if ($http_method =~ /^GET|DELETE$/ && scalar keys %$data) {
-        while (my ($key, $value) = each %$data) {
-            $endpoint .= "&$key=$value";
-        }
+    # Append data to the endpoint for GET and DELETE requests
+    if ($http_method =~ /^GET|DELETE$/ && $data && ref($data) eq 'HASH') {
+        $endpoint .= "&$_=$data->{$_}" foreach keys %$data;
     }
 
+    # Create HTTP request object
     my $request;
     if ($http_method eq 'POST') {
         $request = HTTP::Request::Common::POST($endpoint, %{$hdr//{}}, Content => $data);
@@ -80,28 +81,32 @@ sub request {
         $request = HTTP::Request->new($http_method, $endpoint);
     }
 
-    my $resp = $self->_ua->request($request);
-    my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
+    # Send the request
+    my $response = $self->_ua->request($request);
 
+    # Extract rate limit headers
+    my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
     foreach my $header (@ratelimit_headers) {
-        $self->{'ratelimit_hdrs'}->{$header} = $resp->header("x-ratelimit-$header");
+        $self->{'ratelimit_hdrs'}->{$header} = $response->header("x-ratelimit-$header");
     }
 
-    $self->{'response'} = $resp;
-    $self->{'response_content'} = $resp->{'_content'};
+    # Store response content
+    $self->{'response'} = $response;
+    $self->{'response_content'} = $response->decoded_content;
 
+    # Print response content for debugging
     print Dumper $self->{'response_content'} if $ENV{'DEBUG'};
 
+    # Decode response based on format type
     if ($self->format_type eq 'xml') {
-        return (XML::LibXML->new)->load_xml(string => $resp->{'_content'});
+        return XML::LibXML->new->load_xml(string => $response->decoded_content);
+    } else {
+        my $decoded = eval { decode_json $response->decoded_content };
+        if (my $err = $@) {
+            die "Failed to decode JSON response: $err\n" . $response->decoded_content . "\n";
+        }
+        return $decoded;
     }
-
-    my $decoded = eval { decode_json $resp->{'_content'} };
-    if (my $err = $@) {
-        die "failed to decode json response: $err\n" . $resp->{'_content'} . "\n";
-    }
-
-    return $decoded;
 }
 
 # Setters
