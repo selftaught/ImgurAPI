@@ -8,7 +8,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME      => 'ImgurAPI::Client',
     AUTHOR    => 'Dillan Hildebrand',
-    VERSION   => '0.01',
+    VERSION   => '1.0.0',
     LICENSE   => 'MIT',
     PREREQ_PM => {
         'JSON'                  => '2.90',

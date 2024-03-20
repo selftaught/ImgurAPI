@@ -10,7 +10,7 @@ blib/man3/ImgurAPI.3pm
 blib/script/.exists
 CHANGES.md
 install.sh
-lib/ImgurAPI.pm
+lib/ImgurAPI/Client.pm
 LICENSE.txt
 Makefile
 Makefile.PL

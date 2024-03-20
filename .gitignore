@@ -7,3 +7,5 @@ MYMETA.json
 MYMETA.yml
 ignore
 .DS_Store
+Makefile.old
+ImgurAPI-Client*
