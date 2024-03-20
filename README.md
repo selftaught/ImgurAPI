@@ -13,12 +13,10 @@ ImgurAPI::Client is a perl5 client library for interfacing with Imgur's API endp
 ### Instantiating the client
 
 ```perl
-my $client = ImgurAPI::Client->new( \%optional );
+my $client = ImgurAPI::Client->new( \%options );
 ```
 
 Valid options are:
-
-_note that all are optional but the library will throw if its needed and not defined_
 
 - `client_id`
 - `client_secret`
@@ -30,6 +28,8 @@ _note that all are optional but the library will throw if its needed and not def
   - valid values are `json` (default) and `xml`
 - `oauth_cb_state`
   - parameter appended to oauth2 authorization url returned from `oauth2_authorize_url()` which may be useful to your application upon receipt of the response.
+
+You can also set the values using the setter member subroutines listed at the bottom of the page.
 
 ### Authorization
 
