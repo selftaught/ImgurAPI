@@ -833,7 +833,7 @@ sub feed {
 
 =head1 NAME
 
-ImgurAPI - Imgur API client
+ImgurAPI::Client - Imgur API client
 
 =head1 DESCRIPTION
 
@@ -843,7 +843,7 @@ This is a client module for interfacing with the Imgur API.
 
     use ImgurAPI;
 
-    my $client = ImgurAPI->new({
+    my $client = ImgurAPI::Client->new({
         'client_id'     => 'your_client_id',
         'client_secret' => 'your_client',
         'access_token'  => 'your_access_token'
