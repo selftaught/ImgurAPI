@@ -7,7 +7,7 @@ use Test::More;
 use Test::Exception;
 
 
-use_ok('ImgurAPI');
+use_ok('ImgurAPI::Client');
 
 my $client_id      = '123456789';
 my $client_secret  = 'myClI3nT$3cr3t';
@@ -16,7 +16,7 @@ my $oauth_cb_state = 'someState';
 my $rapidapi_key   = 'myR4p1d4p1K3y';
 
 subtest 'Constructor defaults' => sub {
-    my $imgur = ImgurAPI->new;
+    my $imgur = ImgurAPI::Client->new;
 
     isa_ok $imgur->_ua, 'LWP::UserAgent', 'ImgurAPI->_ua';
 
@@ -30,7 +30,7 @@ subtest 'Constructor defaults' => sub {
 };
 
 subtest 'Constructor params' => sub {
-    my $imgur = ImgurAPI->new({
+    my $imgur = ImgurAPI::Client->new({
         client_id      => $client_id,
         client_secret  => $client_secret,
         access_token   => $access_token,
@@ -50,7 +50,7 @@ subtest 'Constructor params' => sub {
 };
 
 subtest 'ImgurAPI endpoint methods' => sub {
-    can_ok(ImgurAPI->new, qw(
+    can_ok(ImgurAPI::Client->new, qw(
         account
         account_album
         account_album_ids
@@ -97,7 +97,7 @@ subtest 'ImgurAPI endpoint methods' => sub {
 };
 
 subtest 'Setters' => sub {
-    my $imgur = ImgurAPI->new;
+    my $imgur = ImgurAPI::Client->new;
 
     $imgur->set_access_token($access_token);
     is $imgur->access_token, $access_token, 'set_access_token';
@@ -119,7 +119,7 @@ subtest 'Setters' => sub {
 };
 
 subtest 'OAuth2 Authorization URL' => sub {
-    my $imgur = ImgurAPI->new;
+    my $imgur = ImgurAPI::Client->new;
 
     throws_ok { $imgur->oauth2_authorize_url } qr/missing required client_id/, 'oauth2_authorize_url throws with undef client_id';
     $imgur->set_client_id($client_id);

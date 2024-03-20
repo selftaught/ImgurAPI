@@ -1,5 +1,5 @@
 
-package ImgurAPI;
+package ImgurAPI::Client;
 
 use strict;
 use warnings;

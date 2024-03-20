@@ -6,7 +6,7 @@ use lib 'lib';
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME      => 'ImgurAPI',
+    NAME      => 'ImgurAPI::Client',
     AUTHOR    => 'Dillan Hildebrand',
     VERSION   => '0.01',
     LICENSE   => 'MIT',
