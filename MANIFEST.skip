@@ -2,3 +2,5 @@ examples/*
 .git
 TODO.md
 ignore/*
+Dockerfile
+.DS_Store
