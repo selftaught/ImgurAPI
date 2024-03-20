@@ -44,14 +44,14 @@ sub new {
 sub _ua { shift->{'user_agent'} }
 
 sub request {
-    my ($self, $uri, $http_method, $data, $headers) = @_;
+    my ($self, $uri, $http_method, $data, $hdr) = @_;
 
     $http_method = $http_method ? uc $http_method : 'GET';
 
-    my $end_point = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
+    my $endpoint = (defined $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri);
 
-    $end_point  = ($uri =~ /^http(?:s)?/ ? $uri : $end_point);
-    $end_point .= '?_format=' . $self->{'format_type'} . "&_method=$http_method";
+    $endpoint  = ($uri =~ /^http(?:s)?/ ? $uri : $endpoint);
+    $endpoint .= ($endpoint =~ /\?/ ? '&' : '?') . '_format=' . $self->{'format_type'} . "&_method=$http_method";
 
     $self->_ua->default_header('User-Agent' => "ImgurAPI-perl-lib/0.1");
 
@@ -67,38 +67,38 @@ sub request {
 
     if ($http_method =~ /^GET|DELETE$/ && scalar keys %$data) {
         while (my ($key, $value) = each %$data) {
-            $end_point .= "&$key=$value";
+            $endpoint .= "&$key=$value";
         }
     }
 
     my $request;
     if ($http_method eq 'POST') {
-        $request = HTTP::Request::Common::POST($end_point, %{$headers // {}}, Content => $data);
+        $request = HTTP::Request::Common::POST($endpoint, %{$hdr//{}}, Content => $data);
     } elsif ($http_method eq 'PUT') {
-        $request = HTTP::Request::Common::PUT($end_point, %{$headers // {}}, Content => $data);
+        $request = HTTP::Request::Common::PUT($endpoint, %{$hdr//{}}, Content => $data);
     } else {
-        $request = HTTP::Request->new($http_method, $end_point);
+        $request = HTTP::Request->new($http_method, $endpoint);
     }
 
-    print Dumper $request if $ENV{'DEBUG'};
-
-    my $api_resp = $self->_ua->request($request);
+    my $resp = $self->_ua->request($request);
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
 
     foreach my $header (@ratelimit_headers) {
-        $self->{'ratelimit_hdrs'}->{$header} = $api_resp->header("x-ratelimit-$header");
+        $self->{'ratelimit_hdrs'}->{$header} = $resp->header("x-ratelimit-$header");
     }
 
-    $self->{'response'} = $api_resp;
-    $self->{'response_content'} = $api_resp->{'_content'};
+    $self->{'response'} = $resp;
+    $self->{'response_content'} = $resp->{'_content'};
+
+    print Dumper $self->{'response_content'} if $ENV{'DEBUG'};
 
     if ($self->format_type eq 'xml') {
-        return (XML::LibXML->new)->load_xml(string => $api_resp->{'_content'});
+        return (XML::LibXML->new)->load_xml(string => $resp->{'_content'});
     }
 
-    my $decoded = eval { decode_json $api_resp->{'_content'} };
+    my $decoded = eval { decode_json $resp->{'_content'} };
     if (my $err = $@) {
-        die "failed to decode json response: $err";
+        die "failed to decode json response: $err\n" . $resp->{'_content'} . "\n";
     }
 
     return $decoded;
@@ -578,7 +578,7 @@ sub gallery {
     my $show_viral = $opts->{'show_viral'} // 1;
     my $album_prev = $opts->{'album_previews'} // 1;
 
-    return $self->request(("/gallery/$section/$sort" . ($section eq 'top' ? "/$window" : "") . "/$page?showViral=$show_viral"));
+    return $self->request(("/gallery/$section/$sort/$window/$page?showViral=$show_viral&album_previews=" . ($album_prev ? 'true' : 'false')));
 }
 
 sub gallery_album {
@@ -791,7 +791,7 @@ sub image_upload {
     my $type = shift or die "missing required image/video type";
     my $opts = shift // {};
     my $data = {'image' => $src, 'type' => $type};
-    my %hdrs = ();
+    my %hdr  = ();
 
     $data->{'title'} = $opts->{'title'} if $opts->{'title'};
     $data->{'description'} = $opts->{'description'} if $opts->{'description'};
@@ -800,10 +800,10 @@ sub image_upload {
         die "file doesnt exist at path: $src" unless -e $src;
         die "provided src file path is not a file" unless -f $src;
         $data->{'image'} = [$src];
-        $hdrs{Content_Type} = 'form-data';
+        %hdr = (Content_Type => 'form-data');
     }
 
-    return $self->request("/image", 'POST', $data, \%hdrs);
+    return $self->request("/image", 'POST', $data, \%hdr);
 }
 
 sub image_delete {
@@ -833,12 +833,24 @@ sub feed {
 
 =head1 NAME
 
+ImgurAPI - Imgur API client
 
 =head1 DESCRIPTION
 
+This is a client module for interfacing with the Imgur API.
 
 =head1 SYNOPSIS
 
+    use ImgurAPI;
+
+    my $client = ImgurAPI->new({
+        'client_id'     => 'your_client_id',
+        'client_secret' => 'your_client',
+        'access_token'  => 'your_access_token'
+    });
+
+    my $upload = $client->image_upload("helloimgur.png", 'file', {title => 'title', description => 'desc'});
+    my $image_info = $client->image($upload->{'data'}->{'id'});
 
 =head1 AUTHOR
 
@@ -850,6 +862,11 @@ MIT
 
 =head1 INSTALLATION
 
+Manual install:
+
+    $ perl Makefile.PL
+    $ make
+    $ make install
 
 =cut
 
