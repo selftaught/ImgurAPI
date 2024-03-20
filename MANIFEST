@@ -1,25 +1,13 @@
-blib/arch/.exists
-blib/arch/auto/ImgurAPI/.exists
-blib/bin/.exists
-blib/lib/.exists
-blib/lib/auto/ImgurAPI/.exists
-blib/lib/ImgurAPI.pm
-blib/man1/.exists
-blib/man3/.exists
-blib/man3/ImgurAPI.3pm
-blib/script/.exists
 CHANGES.md
-install.sh
 lib/ImgurAPI/Client.pm
 LICENSE.txt
 Makefile
+Makefile.old
 Makefile.PL
-MANIFEST			This list of files
+MANIFEST
 MANIFEST.bak
 MANIFEST.skip
 MYMETA.json
 MYMETA.yml
-pm_to_blib
 README.md
 t/imgurapi.t
-t/modules.t

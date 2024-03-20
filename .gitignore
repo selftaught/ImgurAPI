@@ -9,3 +9,4 @@ ignore
 .DS_Store
 Makefile.old
 ImgurAPI-Client*
+MANIFEST.bak
