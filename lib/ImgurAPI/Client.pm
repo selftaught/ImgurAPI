@@ -15,7 +15,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.1';
+our $VERSION = '1.0.2';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -845,6 +845,7 @@ ImgurAPI::Client - Imgur API client
 This is a client module for interfacing with the Imgur API.
 
 =head1 SYNOPSIS
+
 =head2 Instantiation
 
     use ImgurAPI::Client;
@@ -865,32 +866,123 @@ After registering a client application with Imgur L<here|https://api.imgur.com/o
 
 =head2 Authentication
 
-The client can be authenticated by setting the access token and client id. The access token can be set using the C<set_access_token> method and the client id can be set using the C<set_client_id> method, or by passing them in constructor args.
+The client can be authenticated by setting the access token and client id. Those can be set a couple of ways. The first way is to do it is by passing them to the constructor:
 
-    my $client = ImgurAPI::Client->new;
-    $client->set_access_token('your_access_token');
-    $client->set_client_id('your_client_id');
-    # OR
     my $client = ImgurAPI::Client->new({
         'client_id'    => 'your_client_id',
         'access_token' => 'your_access_token'
     });
 
+The second way is to use the setter methods:
+
+    $client->set_access_token('your_access_token');
+    $client->set_client_id('your_client_id');
+
 =head2 METHODS
+
 =head3 new
 
     $client = ImgurAPI::Client->new(\%args);
 
-Valid constructor args are:
+Valid constructor argumentss are:
 
-* C<client_id> - Client identifier used for authorization, refresh token requests and unauthenticated requests.
-* C<client_secret> - Client secret used for acquiring a refresh token.
-* C<access_key> - Access token used to authenticate requests.
-* C<rapidapi_key> - Commercial use api key provided by RapidAPI.
-* C<format_type> - Api endpoint response format type. Options are C<json> (default) and C<xml>.
-* C<oauth_cb_state> - A parameter that's appended to the OAuth2 authorization callback URL. May be useful if you want to pass along a tracking value to the callback endpoint / collector.
+=over 4
+
+=item *
+
+C<client_id> - Client identifier used for authorization, refresh token requests and unauthenticated requests.
+
+=item *
+
+C<client_secret> - Client secret used for acquiring a refresh token.
+
+=item *
+
+C<access_key> - Access token used to authenticate requests.
+
+=item *
+
+C<rapidapi_key> - Commercial use api key provided by RapidAPI.
+
+=item *
+
+C<format_type> - Api endpoint response format type. Options are C<json> (default) and C<xml>.
+
+=item *
+
+C<oauth_cb_state> - A parameter that's appended to the OAuth2 authorization callback URL. May be useful if you want to pass along a tracking value to the callback endpoint / collector.
+
+=back
 
 A getter and setter method is provided for each constructor arg.
+
+=head3 SETTER METHODS
+
+
+=head4 set_access_token
+
+    $client->set_access_token('your_access_token');
+
+=head4 set_client_id
+
+    $client->set_client_id('your_client_id');
+
+=head4 set_client_secret
+
+    $client->set_client_secret('your_client_secret');
+
+=head4 set_format_type
+
+    $client->set_format_type('xml');
+
+=head4 set_oauth_cb_state
+
+    $client->set_oauth_cb_state('your_oauth_cb_state');
+
+=head4 set_rapidapi_key
+
+    $client->set_rapidapi_key('rapidapi_key');
+
+=head3 GETTER METHODS
+
+=head4 access_token
+
+    $access_tok = $client->access_token;
+
+=head4 client_id
+
+    $client_id = $client->client_id;
+
+=head4 client_secret
+
+    $client_secret = $client->client_secret;
+
+=head4 format_type
+
+    $format_type = $client->format_type;
+
+=head4 oauth_cb_state
+
+    $oauth_cb_state = $client->oauth_cb_state;
+
+=head4 rapidapi_key
+
+    $rapidapi_key = $client->rapidapi_key;
+
+=head4 response
+
+    $response = $client->response;
+
+=head4 response_content
+
+    $response_content = $client->response_content;
+
+=head4 ratelimit_headers
+
+    $ratelimit_headers = $client->ratelimit_headers;
+
+=head3 API REQUEST METHODS
+
 
 =head1 AUTHOR
 

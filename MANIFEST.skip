@@ -4,3 +4,4 @@ TODO.md
 ignore/*
 Dockerfile
 .DS_Store
+ImgurAPI-Client*

@@ -328,3 +328,16 @@ The client library doesn't handle refreshing the access token for you automatica
 - `set_refresh_token(refresh_token)`
 - `set_expiration_datetime(datetime)`
 - `set_no_auth()`
+
+
+## Publishing to CPAN
+
+Prepare distribution
+```
+perl Makefile.PL && make manifest && make && make dist && make clean
+```
+
+Upload
+```
+cpan-upload -u <PAUSEUSERNAME> ImgurAPI-Client-$VERSION.tar.gz
+```
