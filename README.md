@@ -24,14 +24,14 @@ or
 my $client = ImgurAPI::Client->new( \%options );
 ```
 
-Valid options are to pass into the constructor are:
+Valid constructor options are:
 
 - `client_id` - client identifier. used for authorization, refresh token requests and unauthenticated requests
 - `client_secret` - client secret used for acquiring a refresh token
 - `access_key` - used to authenticate requests
 - `rapidapi_key` - commercial use api key
 - `format_type` - api endpoint response format type. valid values are `json` (default) and `xml`
-- `oauth_cb_state` - parameter appended to oauth2 authorization url returned from `oauth2_authorize_url()` which may be useful to your application upon receipt of the response.
+- `oauth_cb_state` - parameter that's appended to oauth2 authorization callback url. this may be useful if you want to pass along a tracking value to the callback endpoint / collector
 
 You can also set the values using the setter member subroutines listed at the bottom of the page.
 
@@ -44,7 +44,7 @@ You will need to authorize your OAuth2 application if you haven't already done s
 ```perl
 my $auth_url = $client->oauth2_authorize_url();
 
-# return to user's browser for manual authorization
+# return to user for manual authorization
 ```
 
 ### Authentication
@@ -60,9 +60,7 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Requests
 
-## Imgur API endpoint subroutines
-
-### Account
+#### Account
 
 - `account($username)` - get information about an account
   - `$username` - string - imgur account username
@@ -165,7 +163,7 @@ The client library doesn't handle refreshing the access token for you automatica
 - `account_verify_email_status($username)`
   - `$username` - string - imgur account username
 
-### Album
+#### Album
 
 - `album($album_id)`
   - `$album_id` - string
@@ -200,7 +198,7 @@ The client library doesn't handle refreshing the access token for you automatica
   - `$album_id` - string
   - `\@ids` - arrayref
 
-### Comment
+#### Comment
 
 - `comment($comment_id)` - get comment info
   - `$comment_id` - string
@@ -216,7 +214,7 @@ The client library doesn't handle refreshing the access token for you automatica
 - `comment_report($comment_id)`
   - `$comment_id` - string
 
-### Gallery
+#### Gallery
 
 - `gallery(\%optional)`
   - optional:
@@ -286,7 +284,7 @@ The client library doesn't handle refreshing the access token for you automatica
 - `gallery_tag_info($tag)`
 - `gallery_tags()`
 
-### Image
+#### Image
 
 - `image($image_id)`
 - `image_upload($src, \%optional)`
@@ -302,11 +300,11 @@ The client library doesn't handle refreshing the access token for you automatica
     - `title` - content title
     - `description` - content description
 
-### Feed
+#### Feed
 
 - `feed()`
 
-## Client member sub-routines
+## Client member subroutines
 
 ### Getters
 
