@@ -21,6 +21,8 @@ or
 ### Instantiation
 
 ```perl
+use ImgurAPI::Client;
+
 my $client = ImgurAPI::Client->new( \%options );
 ```
 
