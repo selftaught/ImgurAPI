@@ -15,6 +15,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
+our $VERSION = '1.0.1';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -56,7 +57,7 @@ sub request {
     $endpoint .= ($endpoint =~ /\?/ ? '&' : '?') . '_format=' . $self->{'format_type'} . "&_method=$http_method";
 
     # Set User-Agent header
-    $self->_ua->default_header('User-Agent' => "ImgurAPI::Client/1.0.0");
+    $self->_ua->default_header('User-Agent' => "ImgurAPI::Client/$VERSION");
 
     # Set Authorization header based on authentication type
     if ($self->{'auth'}) {
@@ -549,7 +550,6 @@ sub comment_reply {
     return $self->request("/comment/$comment_id", 'POST', $data);
 }
 
-# TODO: test this
 sub comment_report {
     my $self = shift;
     my $comment_id = shift or die "missing required comment_id";
@@ -845,17 +845,52 @@ ImgurAPI::Client - Imgur API client
 This is a client module for interfacing with the Imgur API.
 
 =head1 SYNOPSIS
+=head2 Instantiation
 
     use ImgurAPI::Client;
 
     my $client = ImgurAPI::Client->new({
-        'client_id'     => 'your_client_id',
-        'client_secret' => 'your_client',
-        'access_token'  => 'your_access_token'
+        'client_id'    => 'your_client_id',
+        'access_token' => 'your_access_token'
     });
 
     my $upload = $client->image_upload("helloimgur.png", 'file', {title => 'title', description => 'desc'});
-    my $image_info = $client->image($upload->{'data'}->{'id'});
+    my $image_info = $client->image($upload->{'data'}->{'id'};
+
+=head2 Authorization
+
+Imgur uses OAuth 2.0 for authentication. OAuth 2.0 has four steps: registration, authorization, making authenticated requests and getting new access tokens after the initial one expires using a refresh token and client secret.
+
+After registering a client application with Imgur L<here|https://api.imgur.com/oauth2/addclient>, the user will need to manually authorize it. Generate a authorization url using the C<oauth2_authorize_url> method and redirect the user to the generated url. The user will be prompted to authorize the application and upon authorization, the user will be redirected to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the access token and refresh token and store them somewhere your code on the backend can pull the access token from and then pass it to the client. You can also visit the authorization url in the browser and manually pull the access token, refresh token and other parameters out of the redirect url and store them somewhere your code can pull them without having a collector endpoint setup. View the official imgur documentation for authorization L<here|https://apidocs.imgur.com/#authorization-and-oauth>.
+
+=head2 Authentication
+
+The client can be authenticated by setting the access token and client id. The access token can be set using the C<set_access_token> method and the client id can be set using the C<set_client_id> method, or by passing them in constructor args.
+
+    my $client = ImgurAPI::Client->new;
+    $client->set_access_token('your_access_token');
+    $client->set_client_id('your_client_id');
+    # OR
+    my $client = ImgurAPI::Client->new({
+        'client_id'    => 'your_client_id',
+        'access_token' => 'your_access_token'
+    });
+
+=head2 METHODS
+=head3 new
+
+    $client = ImgurAPI::Client->new(\%args);
+
+Valid constructor args are:
+
+* C<client_id> - Client identifier used for authorization, refresh token requests and unauthenticated requests.
+* C<client_secret> - Client secret used for acquiring a refresh token.
+* C<access_key> - Access token used to authenticate requests.
+* C<rapidapi_key> - Commercial use api key provided by RapidAPI.
+* C<format_type> - Api endpoint response format type. Options are C<json> (default) and C<xml>.
+* C<oauth_cb_state> - A parameter that's appended to the OAuth2 authorization callback URL. May be useful if you want to pass along a tracking value to the callback endpoint / collector.
+
+A getter and setter method is provided for each constructor arg.
 
 =head1 AUTHOR
 
@@ -864,14 +899,6 @@ Dillan Hildebrand
 =head1 LICENSE
 
 MIT
-
-=head1 INSTALLATION
-
-Manual install:
-
-    $ perl Makefile.PL
-    $ make
-    $ make install
 
 =cut
 

@@ -6,17 +6,19 @@ use lib 'lib';
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME      => 'ImgurAPI::Client',
-    AUTHOR    => 'Dillan Hildebrand',
-    VERSION   => '1.0.0',
-    LICENSE   => 'MIT',
-    PREREQ_PM => {
+    NAME         => 'ImgurAPI::Client',
+    AUTHOR       => 'Dillan Hildebrand',
+    VERSION_FROM => 'lib/ImgurAPI/Client.pm',
+    LICENSE      => 'MIT',
+    PREREQ_PM    => {
         'JSON'                  => '2.90',
         'LWP::UserAgent'        => '6.05',
         'HTTP::Request::Common' => '6.07',
         'Data::Dumper'          => '2.154',
         'Scalar::Util'          => '1.42',
         'Mozilla::CA'           => '20240313',
+        'Test::Exception'       => '0.43',
+        'Test::More'            => '1.302162',
     },
     META_MERGE => {
         resources => {
