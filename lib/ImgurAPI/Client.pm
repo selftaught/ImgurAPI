@@ -15,7 +15,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.2';
+our $VERSION = '1.0.4';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -88,7 +88,8 @@ sub request {
     # Extract rate limit headers
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
     foreach my $header (@ratelimit_headers) {
-        $self->{'ratelimit_hdrs'}->{$header} = $response->header("x-ratelimit-$header");
+        my $val = $response->header("x-ratelimit-$header");
+        $self->{'ratelimit_headers'}->{$header} = $val && $val =~ /^\d+$/ ? int $val : $val;
     }
 
     # Store response content
@@ -510,7 +511,6 @@ sub comment {
     return $self->request("/comment/$id");
 }
 
-# TODO: test this
 sub comment_create {
     my $self = shift;
     my $image_id = shift or die "missing required image id";
@@ -973,16 +973,394 @@ A getter and setter method is provided for each constructor arg.
 
     $response = $client->response;
 
+This method will return the last response object from the last request.
+
 =head4 response_content
 
     $response_content = $client->response_content;
+
+This method will return the last response content from the last request.
 
 =head4 ratelimit_headers
 
     $ratelimit_headers = $client->ratelimit_headers;
 
+This method will return a hashref containing the rate limit headers from the last request. The keys returned are:
+
+=over 4
+
+=item *
+
+C<userlimit> - The total credits that can be allocated.
+
+=item *
+
+C<userremaining> - The total credits remaining.
+
+=item *
+
+C<userreset> - Timestamp (unix epoch) for when the credits will be reset.
+
+=item *
+
+C<clientlimit> - Total credits that can be allocated for the application in a day.
+
+=item *
+
+C<clientremaining> - Total credits remaining for the application in a day.
+
+=back
+
+
 =head3 API REQUEST METHODS
 
+
+=head4 ACCOUNT
+
+=head5 account
+
+    $resp = $client->account('username');
+
+Get account information for a given username. Pass C<me> as the username to get the account information for the authenticated user.
+
+=head5 account_album
+
+    $resp = $client->account_album('username', 'album_id');
+
+Get information about a specific account album. Pass C<me> as the username to get the account information for the authenticated user.
+
+=head5 account_album_count
+
+    $resp = $client->account_album_count('username');
+
+=head5 account_album_delete
+
+    $resp = $client->account_album_delete('username', 'album_id');
+
+=head5 account_album_ids
+
+    $resp = $client->account_album_ids('username', \%opts);
+
+=head5 account_albums
+
+    $resp = $client->account_albums('username', \%opts);
+
+=head5 account_block_status
+
+    $resp = $client->account_block_status('username');
+
+=head5 account_block_create
+
+    $resp = $client->account_block_create('username');
+
+=head5 account_block_delete
+
+    $resp = $client->account_block_delete('username');
+
+=head5 account_blocks
+
+    $resp = $client->account_blocks;
+
+=head5 account_comment
+
+    $resp = $client->account_comment('username', 'comment_id');
+
+=head5 account_comment_count
+
+    $resp = $client->account_comment_count('username');
+
+=head5 account_comment_delete
+
+    $resp = $client->account_comment_delete('username', 'comment_id');
+
+=head5 account_comment_ids
+
+    $resp = $client->account_comment_ids('username', \%opts);
+
+=head5 account_comments
+
+    $resp = $client->account_comments('username', \%opts);
+
+=head5 account_delete
+
+    $resp = $client->account_delete('client_id', \%opts);
+
+=head5 account_favorites
+
+    $resp = $client->account_favorites('username', \%opts);
+
+=head5 account_gallery_favorites
+
+    $resp = $client->account_gallery_favorites('username', \%opts);
+
+=head5 account_image
+
+    $resp = $client->account_image('username', 'image_id');
+
+=head5 account_image_count
+
+    $resp = $client->account_image_count('username');
+
+=head5 account_image_delete
+
+    $resp = $client->account_image_delete('username', 'image_id');
+
+=head5 account_image_ids
+
+    $resp = $client->account_image_ids('username', \%opts);
+
+=head5 account_images
+
+    $resp = $client->account_images('username', \%opts);
+
+=head5 account_reply_notifications
+
+    $resp = $client->account_reply_notifications('username', \%opts);
+
+=head5 account_settings
+
+    $resp = $client->account_settings('username');
+
+=head5 account_settings_update
+
+    $resp = $client->account_settings_update('username', \%opts);
+
+=head5 account_submissions
+
+    $resp = $client->account_submissions('username', \%opts);
+
+=head5 account_tag_follow
+
+    $resp = $client->account_tag_follow('tag');
+
+=head5 account_tag_unfollow
+
+    $resp = $client->account_tag_unfollow('tag');
+
+=head5 account_verify_email_send
+
+    $resp = $client->account_verify_email_send('username');
+
+=head5 account_verify_email_status
+
+    $resp = $client->account_verify_email_status('username');
+
+
+=head4 ALBUM
+
+
+=head5 album
+
+    $resp = $client->album('album_id');
+
+Get information about a specific album.
+
+=head5 album_create
+
+    $resp = $client->album_create({
+        ids => ['image_id1', 'image_id2'],
+        title => 'title',
+        description => 'description',
+        cover => 'image_id'
+    });
+
+=head5 album_delete
+
+    $resp = $client->album_delete('album_id');
+
+=head5 album_favorite
+
+    $resp = $client->album_favorite('album_id');
+
+=head5 album_image
+
+    $resp = $client->album_image('album_id', 'image_id');
+
+=head5 album_images
+
+    $resp = $client->album_images('album_id');
+
+=head5 album_images_add
+
+    $resp = $client->album_images_add('album_id', ['image_id1', 'image_id2']);
+
+=head5 album_images_delete
+
+    $resp = $client->album_images_delete('album_id', ['image_id1', 'image_id2']);
+
+=head5 album_images_set
+
+    $resp = $client->album_images_set('album_id', ['image_id1', 'image_id2']);
+
+=head5 album_update
+
+    $resp = $client->album_update('album_id', {
+        ids => ['image_id1', 'image_id2'],
+        title => 'title',
+        description => 'description',
+        cover => 'image_id'
+    });
+
+=head4 COMMENT
+
+=head5 comment
+
+    $resp = $client->comment('comment_id');
+
+Get information about a specific comment.
+
+=head5 comment_create
+
+    $resp = $client->comment_create('image_id', 'comment');
+
+Create a new comment on an image.
+
+=head5 comment_delete
+
+    $resp = $client->comment_delete('comment_id');
+
+Delete a comment.
+
+=head5 comment_replies
+
+    $resp = $client->comment_replies('comment_id');
+
+Get the replies for a specific comment.
+
+=head5 comment_reply
+
+    $resp = $client->comment_reply('image_id', 'comment_id', 'comment');
+
+Create a new reply to a comment.
+
+=head5 comment_report
+
+    $resp = $client->comment_report('comment_id', 'reason');
+
+=head5 comment_vote
+
+    $resp = $client->comment_vote('comment_id', 'up');
+
+=head4 GALLERY
+
+=head5 gallery
+
+    $resp = $client->gallery(\%opts);
+
+Get gallery images.
+
+=head5 gallery_album
+
+    $resp = $client->gallery_album('album_id');
+
+=head5 gallery_image
+
+    $resp = $client->gallery_image('image_id');
+
+=head5 gallery_item
+
+    $resp = $client->gallery_item('item_id');
+
+=head5 gallery_item_comment
+
+    $resp = $client->gallery_item_comment('item_id', 'comment');
+
+=head5 gallery_item_comment_info
+
+    $resp = $client->gallery_item_comment_info('item_id', 'comment_id');
+
+=head5 gallery_item_comments
+
+    $resp = $client->gallery_item_comments('item_id');
+
+=head5 gallery_item_report
+
+    $resp = $client->gallery_item_report('item_id', \%opts);
+
+=head5 gallery_item_tags
+
+    $resp = $client->gallery_item_tags('item_id');
+
+=head5 gallery_item_tags_update
+
+    $resp = $client->gallery_item_tags_update('item_id', \@tags);
+
+=head5 gallery_item_vote
+
+    $resp = $client->gallery_item_vote('item_id', 'up');
+
+=head5 gallery_item_votes
+
+    $resp = $client->gallery_item_votes('item_id');
+
+=head5 gallery_image_remove
+
+    $resp = $client->gallery_image_remove('image_id');
+
+=head5 gallery_search
+
+    $resp = $client->gallery_search('query', \%opts, \%advanced);
+
+=head5 gallery_share_image
+
+    $resp = $client->gallery_share_image('image_id', 'title', \%opts);
+
+=head5 gallery_share_album
+
+    $resp = $client->gallery_share_album('album_id', 'title', \%opts);
+
+=head5 gallery_subreddit
+
+    $resp = $client->gallery_subreddit('subreddit', \%opts);
+
+=head5 gallery_subreddit_image
+
+    $resp = $client->gallery_subreddit_image('subreddit', 'image_id');
+
+=head5 gallery_tag
+
+    $resp = $client->gallery_tag('tag', \%opts);
+
+=head5 gallery_tag_info
+
+    $resp = $client->gallery_tag_info('tag');
+
+=head5 gallery_tags
+
+    $resp = $client->gallery_tags;
+
+
+=head4 IMAGE
+
+=head5 image
+
+    $resp = $client->image('image_id');
+
+Get information about a specific image.
+
+=head5 image_upload
+
+    $resp = $client->image_upload('image_path', 'file', {title => 'title', description => 'description'});
+
+Upload an image or video to imgur. The second argument is the type of the first argument. It can be either C<file> or C<url>.
+
+=head5 image_delete
+
+    $resp = $client->image_delete('image_id');
+
+=head5 image_favorite
+
+    $resp = $client->image_favorite('image_id');
+
+=head5 image_update
+
+    $resp = $client->image_update('image_id', {title => 'title', description => 'description'});
+
+=head4 FEED
+
+=head5 feed
+
+    $resp = $client->feed;
 
 =head1 AUTHOR
 
