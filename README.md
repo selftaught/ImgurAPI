@@ -1,8 +1,16 @@
 # ImgurAPI perl library
 
-ImgurAPI::Client is a perl5 client library for interfacing with Imgur's API endpoints.
+ImgurAPI::Client is an Imgur API client module.
 
 ## Installation
+
+### CPAN/M
+
+`cpan ImgurAPI::Client`
+or
+`cpanm ImgurAPI::Client`
+
+### Manual
 
 1. Clone the repository `git clone https://github.com/selftaught/ImgurAPI.git`
 2. Cd into the repo root and generate a makefile: `perl Makefile.pl`
@@ -10,24 +18,20 @@ ImgurAPI::Client is a perl5 client library for interfacing with Imgur's API endp
 
 ## Usage
 
-### Instantiating the client
+### Instantiation
 
 ```perl
 my $client = ImgurAPI::Client->new( \%options );
 ```
 
-Valid options are:
+Valid options are to pass into the constructor are:
 
-- `client_id`
-- `client_secret`
-- `access_key`
-- `rapidapi_key`
-  - commercial rapidapi / mashape api key (commercial use)
-- `format_type`
-  - api endpoint response format type
-  - valid values are `json` (default) and `xml`
-- `oauth_cb_state`
-  - parameter appended to oauth2 authorization url returned from `oauth2_authorize_url()` which may be useful to your application upon receipt of the response.
+- `client_id` - client identifier. used for authorization, refresh token requests and unauthenticated requests
+- `client_secret` - client secret used for acquiring a refresh token
+- `access_key` - used to authenticate requests
+- `rapidapi_key` - commercial use api key
+- `format_type` - api endpoint response format type. valid values are `json` (default) and `xml`
+- `oauth_cb_state` - parameter appended to oauth2 authorization url returned from `oauth2_authorize_url()` which may be useful to your application upon receipt of the response.
 
 You can also set the values using the setter member subroutines listed at the bottom of the page.
 
@@ -43,7 +47,8 @@ my $auth_url = $client->oauth2_authorize_url();
 # return to user's browser for manual authorization
 ```
 
-Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your client calling code on the backend can pull the access token from and then pass it to the client.
+### Authentication
+Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your code on the backend can pull the access token from and then pass it to the client.
 
 ```perl
 my $access_token = get_access_token_from_some_db();

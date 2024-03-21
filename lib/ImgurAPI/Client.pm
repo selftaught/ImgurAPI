@@ -846,7 +846,7 @@ This is a client module for interfacing with the Imgur API.
 
 =head1 SYNOPSIS
 
-    use ImgurAPI;
+    use ImgurAPI::Client;
 
     my $client = ImgurAPI::Client->new({
         'client_id'     => 'your_client_id',
