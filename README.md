@@ -334,7 +334,7 @@ The client library doesn't handle refreshing the access token for you automatica
 
 Prepare distribution
 ```
-perl Makefile.PL && make manifest && make && make dist && make clean
+perl Makefile.PL && make dist && make clean
 ```
 
 Upload
