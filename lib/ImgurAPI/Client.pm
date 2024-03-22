@@ -5,17 +5,15 @@ use strict;
 use warnings;
 
 use Data::Dumper;
-use File::Slurp;
 use HTTP::Request::Common;
 use JSON qw(decode_json encode_json);
 use List::Util qw(first);
 use LWP::UserAgent;
-use MIME::Base64;
 use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.5';
+our $VERSION = '1.0.7';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -884,7 +882,7 @@ The second way is to use the setter methods:
 
     $client = ImgurAPI::Client->new(\%args);
 
-Valid constructor argumentss are:
+Valid constructor arguments are:
 
 =over 4
 
@@ -1019,227 +1017,501 @@ C<clientremaining> - Total credits remaining for the application in a day.
 
 =head5 account
 
-    $resp = $client->account('username');
+    $resp = $client->account($username);
 
 Get account information for a given username. Pass C<me> as the username to get the account information for the authenticated user.
 
 =head5 account_album
 
-    $resp = $client->account_album('username', 'album_id');
+    $resp = $client->account_album($username, $album_id);
 
 Get information about a specific account album. Pass C<me> as the username to get the account information for the authenticated user.
 
 =head5 account_album_count
 
-    $resp = $client->account_album_count('username');
+    $resp = $client->account_album_count($username);
+
+Get the total number of albums associated with an account. Pass C<me> as the username to get the account information for the authenticated user.
 
 =head5 account_album_delete
 
-    $resp = $client->account_album_delete('username', 'album_id');
+    $resp = $client->account_album_delete($username, $album_id);
+
+Delete a specific album. Pass C<me> as the username to get the account information for the authenticated user.
 
 =head5 account_album_ids
 
-    $resp = $client->account_album_ids('username', \%opts);
+    $resp = $client->account_album_ids($username, \%opts);
+
+Get all the album ids associated with the account. Pass C<me> as the username to get the account information for the authenticated user.
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=back
 
 =head5 account_albums
 
-    $resp = $client->account_albums('username', \%opts);
+    $resp = $client->account_albums($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=back
 
 =head5 account_block_status
 
-    $resp = $client->account_block_status('username');
+    $resp = $client->account_block_status($username);
+
+Get the current block status for a user.
 
 =head5 account_block_create
 
-    $resp = $client->account_block_create('username');
+    $resp = $client->account_block_create($username);
+
+Block a user.
 
 =head5 account_block_delete
 
-    $resp = $client->account_block_delete('username');
+    $resp = $client->account_block_delete($username);
+
+Unblock a user.
 
 =head5 account_blocks
 
     $resp = $client->account_blocks;
 
+Get the list of usernames that have been blocked.
+
 =head5 account_comment
 
-    $resp = $client->account_comment('username', 'comment_id');
+    $resp = $client->account_comment($username, $comment_id);
+
+Get information about a specific account comment.
 
 =head5 account_comment_count
 
-    $resp = $client->account_comment_count('username');
+    $resp = $client->account_comment_count($username);
+
+Get the total number of comments associated with the account username.
 
 =head5 account_comment_delete
 
-    $resp = $client->account_comment_delete('username', 'comment_id');
+    $resp = $client->account_comment_delete($username, $comment_id);
+
+Delete a specific account comment.
 
 =head5 account_comment_ids
 
-    $resp = $client->account_comment_ids('username', \%opts);
+    $resp = $client->account_comment_ids($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=item *
+
+C<sort> - Sort order. Options are C<best>, C<worst> and C<newest> (default)
+
+=back
 
 =head5 account_comments
 
-    $resp = $client->account_comments('username', \%opts);
+    $resp = $client->account_comments($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=item *
+
+C<sort> - Sort order. Options are C<best>, C<worst> and C<newest> (default)
+
+=back
 
 =head5 account_delete
 
-    $resp = $client->account_delete('client_id', \%opts);
+    $resp = $client->account_delete($password, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<reasons> - Array reference of reasons for deleting the account
+
+=item *
+
+C<feedback> - Feedback in the form of a string for Imgur.
+
+=back
 
 =head5 account_favorites
 
-    $resp = $client->account_favorites('username', \%opts);
+    $resp = $client->account_favorites($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=item *
+
+C<sort> - Sort order. Options are C<oldest> or C<newest> (default)
+
+=back
 
 =head5 account_gallery_favorites
 
-    $resp = $client->account_gallery_favorites('username', \%opts);
+    $resp = $client->account_gallery_favorites($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=item *
+
+C<sort> - Sort order. Options are C<oldest> or C<newest> (default)
+
+=back
 
 =head5 account_image
 
-    $resp = $client->account_image('username', 'image_id');
+    $resp = $client->account_image($username, $image_id);
+
+Get information about a specific image in the account.
 
 =head5 account_image_count
 
-    $resp = $client->account_image_count('username');
+    $resp = $client->account_image_count($username);
+
+Get the total number of images associated with the account.
 
 =head5 account_image_delete
 
-    $resp = $client->account_image_delete('username', 'image_id');
+    $resp = $client->account_image_delete($username, $image_id);
+
+Delete a specific image.
 
 =head5 account_image_ids
 
-    $resp = $client->account_image_ids('username', \%opts);
+    $resp = $client->account_image_ids($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=back
 
 =head5 account_images
 
-    $resp = $client->account_images('username', \%opts);
+    $resp = $client->account_images($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=back
 
 =head5 account_reply_notifications
 
-    $resp = $client->account_reply_notifications('username', \%opts);
+    $resp = $client->account_reply_notifications($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<new> - Boolean value. True for unviewed notifications and false for viewed notifications.
+
+=back
 
 =head5 account_settings
 
-    $resp = $client->account_settings('username');
+    $resp = $client->account_settings($username);
+
+Get account settings for a given username.
 
 =head5 account_settings_update
 
-    $resp = $client->account_settings_update('username', \%opts);
+    $resp = $client->account_settings_update($username, \%opts);
+
+Update an account's settings.
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<bio> - A string for the bio.
+
+=item *
+
+C<public_images> - A boolean value to set images to public or not by default.
+
+=item *
+
+C<messaging_enabled> - A boolean value to allow messaging or not.
+
+=item *
+
+C<accepted_gallery_terms> - A boolean value to accept the gallery terms.
+
+=item *
+
+C<username> - A valid username between 4 and 63 alphanumeric characters.
+
+=item *
+
+C<show_mature> - A boolean value to show mature images in gallery list endpoints.
+
+=item *
+
+C<newsletter_subscribed> - A boolean value, true to subscribe to the newsletter, false to unsubscribe from the newsletter.
+
+=back
 
 =head5 account_submissions
 
-    $resp = $client->account_submissions('username', \%opts);
+    $resp = $client->account_submissions($username, \%opts);
+
+Valid options are:
+
+=over 4
+
+=item *
+
+C<page> - Page number
+
+=back
 
 =head5 account_tag_follow
 
-    $resp = $client->account_tag_follow('tag');
+    $resp = $client->account_tag_follow($tag);
+
+Follow a tag.
 
 =head5 account_tag_unfollow
 
-    $resp = $client->account_tag_unfollow('tag');
+    $resp = $client->account_tag_unfollow($tag);
+
+Unfollow a tag.
 
 =head5 account_verify_email_send
 
-    $resp = $client->account_verify_email_send('username');
+    $resp = $client->account_verify_email_send($username);
+
+Send a verification email.
 
 =head5 account_verify_email_status
 
-    $resp = $client->account_verify_email_status('username');
+    $resp = $client->account_verify_email_status($username);
 
+Get the status of the verification email.
 
 =head4 ALBUM
 
-
 =head5 album
 
-    $resp = $client->album('album_id');
+    $resp = $client->album($album_id);
 
 Get information about a specific album.
 
 =head5 album_create
 
-    $resp = $client->album_create({
-        ids => ['image_id1', 'image_id2'],
-        title => 'title',
-        description => 'description',
-        cover => 'image_id'
-    });
+    $resp = $client->album_create(\%opts);
+
+=over 4
+
+=item *
+
+C<ids> - Array reference of image ids.
+
+=item *
+
+C<title> - Title of the album.
+
+=item *
+
+C<description> - Description of the album.
+
+=item *
+
+C<cover> - Image id of the cover image.
+
+=back
 
 =head5 album_delete
 
-    $resp = $client->album_delete('album_id');
+    $resp = $client->album_delete($album_id);
+
+Delete an album.
 
 =head5 album_favorite
 
-    $resp = $client->album_favorite('album_id');
+    $resp = $client->album_favorite($album_id);
+
+Favorite an album.
 
 =head5 album_image
 
-    $resp = $client->album_image('album_id', 'image_id');
+    $resp = $client->album_image($album_id, $image_id);
+
+Get information about a specific image in an album.
 
 =head5 album_images
 
-    $resp = $client->album_images('album_id');
+    $resp = $client->album_images($album_id);
+
+Get all the images in an album.
 
 =head5 album_images_add
 
-    $resp = $client->album_images_add('album_id', ['image_id1', 'image_id2']);
+    $resp = $client->album_images_add($album_id, \@image_ids);
+
+Add images to an album.
 
 =head5 album_images_delete
 
-    $resp = $client->album_images_delete('album_id', ['image_id1', 'image_id2']);
+    $resp = $client->album_images_delete($album_id, \@image_ids);
+
+Delete images from an album.
 
 =head5 album_images_set
 
-    $resp = $client->album_images_set('album_id', ['image_id1', 'image_id2']);
+    $resp = $client->album_images_set($album_id, \@image_ids);
+
+Set the images for an album.
 
 =head5 album_update
 
-    $resp = $client->album_update('album_id', {
-        ids => ['image_id1', 'image_id2'],
-        title => 'title',
-        description => 'description',
-        cover => 'image_id'
-    });
+    $resp = $client->album_update($album_id, \%opts);
+
+Update an album. Valid options are:
+
+=over 4
+
+=item *
+
+C<ids> - Array reference of image ids.
+
+=item *
+
+C<title> - Title of the album.
+
+=item *
+
+C<description> - Description of the album.
+
+=item *
+
+C<cover> - Image id of the cover image.
+
+=back
 
 =head4 COMMENT
 
 =head5 comment
 
-    $resp = $client->comment('comment_id');
+    $resp = $client->comment($comment_id);
 
 Get information about a specific comment.
 
 =head5 comment_create
 
-    $resp = $client->comment_create('image_id', 'comment');
+    $resp = $client->comment_create($image_id, $comment);
 
 Create a new comment on an image.
 
 =head5 comment_delete
 
-    $resp = $client->comment_delete('comment_id');
+    $resp = $client->comment_delete($comment_id);
 
 Delete a comment.
 
 =head5 comment_replies
 
-    $resp = $client->comment_replies('comment_id');
+    $resp = $client->comment_replies($comment_id);
 
 Get the replies for a specific comment.
 
 =head5 comment_reply
 
-    $resp = $client->comment_reply('image_id', 'comment_id', 'comment');
+    $resp = $client->comment_reply($image_id, $comment_id, $comment);
 
 Create a new reply to a comment.
 
 =head5 comment_report
 
-    $resp = $client->comment_report('comment_id', 'reason');
+    $resp = $client->comment_report($comment_id, $reason);
+
+Report a comment with a reason. Valid reasons are:
+
+=over 4
+
+=item *
+
+C<1> - Doesn't belong on Imgur
+
+=item *
+
+C<2> - Spam
+
+=item *
+
+C<3> - Abusive
+
+=item *
+
+C<4> - Mature content not marked as mature
+
+=item *
+
+C<5> - Pornography
+
+=back
 
 =head5 comment_vote
 
-    $resp = $client->comment_vote('comment_id', 'up');
+    $resp = $client->comment_vote($comment_id, $vote);
+
+Cast a vote on a comment. Valid vote values are C<up>, C<down> and C<veto>.
 
 =head4 GALLERY
 
@@ -1251,51 +1523,51 @@ Get gallery images.
 
 =head5 gallery_album
 
-    $resp = $client->gallery_album('album_id');
+    $resp = $client->gallery_album($album_id);
 
 =head5 gallery_image
 
-    $resp = $client->gallery_image('image_id');
+    $resp = $client->gallery_image($image_id);
 
 =head5 gallery_item
 
-    $resp = $client->gallery_item('item_id');
+    $resp = $client->gallery_item($item_id);
 
 =head5 gallery_item_comment
 
-    $resp = $client->gallery_item_comment('item_id', 'comment');
+    $resp = $client->gallery_item_comment($item_id, $comment);
 
 =head5 gallery_item_comment_info
 
-    $resp = $client->gallery_item_comment_info('item_id', 'comment_id');
+    $resp = $client->gallery_item_comment_info($item_id, $comment_id);
 
 =head5 gallery_item_comments
 
-    $resp = $client->gallery_item_comments('item_id');
+    $resp = $client->gallery_item_comments($item_id);
 
 =head5 gallery_item_report
 
-    $resp = $client->gallery_item_report('item_id', \%opts);
+    $resp = $client->gallery_item_report($item_id, \%opts);
 
 =head5 gallery_item_tags
 
-    $resp = $client->gallery_item_tags('item_id');
+    $resp = $client->gallery_item_tags($item_id);
 
 =head5 gallery_item_tags_update
 
-    $resp = $client->gallery_item_tags_update('item_id', \@tags);
+    $resp = $client->gallery_item_tags_update($item_id, \@tags);
 
 =head5 gallery_item_vote
 
-    $resp = $client->gallery_item_vote('item_id', 'up');
+    $resp = $client->gallery_item_vote($item_id, $vote);
 
 =head5 gallery_item_votes
 
-    $resp = $client->gallery_item_votes('item_id');
+    $resp = $client->gallery_item_votes($item_id);
 
 =head5 gallery_image_remove
 
-    $resp = $client->gallery_image_remove('image_id');
+    $resp = $client->gallery_image_remove($image_id);
 
 =head5 gallery_search
 
@@ -1303,11 +1575,11 @@ Get gallery images.
 
 =head5 gallery_share_image
 
-    $resp = $client->gallery_share_image('image_id', 'title', \%opts);
+    $resp = $client->gallery_share_image($image_id , $title, \%opts);
 
 =head5 gallery_share_album
 
-    $resp = $client->gallery_share_album('album_id', 'title', \%opts);
+    $resp = $client->gallery_share_album($album_id, $title, \%opts);
 
 =head5 gallery_subreddit
 
@@ -1315,26 +1587,25 @@ Get gallery images.
 
 =head5 gallery_subreddit_image
 
-    $resp = $client->gallery_subreddit_image('subreddit', 'image_id');
+    $resp = $client->gallery_subreddit_image('subreddit', $image_id);
 
 =head5 gallery_tag
 
-    $resp = $client->gallery_tag('tag', \%opts);
+    $resp = $client->gallery_tag($tag, \%opts);
 
 =head5 gallery_tag_info
 
-    $resp = $client->gallery_tag_info('tag');
+    $resp = $client->gallery_tag_info($tag);
 
 =head5 gallery_tags
 
     $resp = $client->gallery_tags;
 
-
 =head4 IMAGE
 
 =head5 image
 
-    $resp = $client->image('image_id');
+    $resp = $client->image($image_id);
 
 Get information about a specific image.
 
@@ -1346,21 +1617,29 @@ Upload an image or video to imgur. The second argument is the type of the first 
 
 =head5 image_delete
 
-    $resp = $client->image_delete('image_id');
+    $resp = $client->image_delete($image_id);
+
+Delete an image.
 
 =head5 image_favorite
 
-    $resp = $client->image_favorite('image_id');
+    $resp = $client->image_favorite($image_id);
+
+Favorite an image.
 
 =head5 image_update
 
-    $resp = $client->image_update('image_id', {title => 'title', description => 'description'});
+    $resp = $client->image_update($image_id, {title => 'title', description => 'description'});
+
+Update an image.
 
 =head4 FEED
 
 =head5 feed
 
     $resp = $client->feed;
+
+Get the authenticated user's feed.
 
 =head1 AUTHOR
 

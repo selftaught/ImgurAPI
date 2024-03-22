@@ -19,6 +19,7 @@ WriteMakefile(
         'Mozilla::CA'           => '20240313',
         'Test::Exception'       => '0.43',
         'Test::More'            => '1.302162',
+        'XML::LibXML'           => '2.0110',
     },
     META_MERGE => {
         resources => {

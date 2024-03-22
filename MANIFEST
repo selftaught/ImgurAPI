@@ -1,3 +1,13 @@
+blib/arch/.exists
+blib/arch/auto/ImgurAPI/Client/.exists
+blib/bin/.exists
+blib/lib/auto/ImgurAPI/Client/.exists
+blib/lib/ImgurAPI/.exists
+blib/lib/ImgurAPI/Client.pm
+blib/man1/.exists
+blib/man3/.exists
+blib/man3/ImgurAPI::Client.3pm
+blib/script/.exists
 CHANGES.md
 lib/ImgurAPI/Client.pm
 LICENSE.txt
@@ -9,5 +19,6 @@ MANIFEST.bak
 MANIFEST.skip
 MYMETA.json
 MYMETA.yml
+pm_to_blib
 README.md
 t/imgurapi.t
