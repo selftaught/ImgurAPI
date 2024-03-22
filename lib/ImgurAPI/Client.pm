@@ -1521,57 +1521,137 @@ Cast a vote on a comment. Valid vote values are C<up>, C<down> and C<veto>.
 
 Get gallery images.
 
+Validation options are:
+
+=over 4
+
+=item *
+
+C<section> - Section. Options are C<hot> (default), C<top> and C<user>.
+
+=item *
+
+C<sort> - Sort order. Options are C<viral> (default), C<top>, C<time>, C<rising>.
+
+=item *
+
+C<page> - Page number.
+
+=item *
+
+C<window> - Time window. Options are C<day>, C<week>, C<month>, C<year>, C<all>.
+
+=item *
+
+C<show_viral> - Show or hide viral images in the gallery. Default is C<1>.
+
+=item *
+
+C<album_previews> - Show or hide album previews in the gallery. Default is C<1>.
+
+=back
+
 =head5 gallery_album
 
     $resp = $client->gallery_album($album_id);
+
+Get information about a specific gallery album.
 
 =head5 gallery_image
 
     $resp = $client->gallery_image($image_id);
 
+Get information about a specific gallery image.
+
 =head5 gallery_item
 
     $resp = $client->gallery_item($item_id);
+
+Get information about a specific gallery item.
 
 =head5 gallery_item_comment
 
     $resp = $client->gallery_item_comment($item_id, $comment);
 
+Create a new comment on a gallery item.
+
 =head5 gallery_item_comment_info
 
     $resp = $client->gallery_item_comment_info($item_id, $comment_id);
+
+Get information about a specific comment on a gallery item.
 
 =head5 gallery_item_comments
 
     $resp = $client->gallery_item_comments($item_id);
 
+Get all the comments on a gallery item.
+
 =head5 gallery_item_report
 
     $resp = $client->gallery_item_report($item_id, \%opts);
+
+Report a gallery item. Valid options are:
+
+=over 4
+
+=item *
+
+C<reason> - Reason for reporting the item. Options are C<1> (doesn't belong on Imgur), C<2> (spam), C<3> (abusive), C<4> (mature content not marked as mature), C<5> (pornography).
+
+=back
 
 =head5 gallery_item_tags
 
     $resp = $client->gallery_item_tags($item_id);
 
+Get the tags for a gallery item.
+
 =head5 gallery_item_tags_update
 
     $resp = $client->gallery_item_tags_update($item_id, \@tags);
+
+Update the tags for a gallery item.
 
 =head5 gallery_item_vote
 
     $resp = $client->gallery_item_vote($item_id, $vote);
 
+Cast a vote on a gallery item. Valid vote values are C<up>, C<down> and C<veto>.
+
 =head5 gallery_item_votes
 
     $resp = $client->gallery_item_votes($item_id);
+
+Get the votes for a gallery item.
 
 =head5 gallery_image_remove
 
     $resp = $client->gallery_image_remove($image_id);
 
+Remove an image from the gallery.
+
 =head5 gallery_search
 
     $resp = $client->gallery_search('query', \%opts, \%advanced);
+
+Search the gallery. Valid options are:
+
+=over 4
+
+=item *
+
+C<sort> - Sort order. Options are C<time> (default),  C<viral>, C<top>, C<rising>.
+
+=item *
+
+C<window> - Time window. Options are C<all> (default), C<day>, C<week>, C<month>, C<year>.
+
+=item *
+
+C<page> - Page number.
+
+=back
 
 =head5 gallery_share_image
 
