@@ -13,7 +13,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.9';
+our $VERSION = '1.0.10';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -1045,7 +1045,7 @@ Delete a specific album. Pass C<me> as the username to get the account informati
 
 Get all the album ids associated with the account. Pass C<me> as the username to get the account information for the authenticated user.
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1059,7 +1059,7 @@ C<page> - Page number
 
     $resp = $client->account_albums($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1115,7 +1115,7 @@ Delete a specific account comment.
 
     $resp = $client->account_comment_ids($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1133,7 +1133,7 @@ C<sort> - Sort order. Options are C<best>, C<worst> and C<newest> (default)
 
     $resp = $client->account_comments($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1151,7 +1151,7 @@ C<sort> - Sort order. Options are C<best>, C<worst> and C<newest> (default)
 
     $resp = $client->account_delete($password, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1169,7 +1169,7 @@ C<feedback> - Feedback in the form of a string for Imgur.
 
     $resp = $client->account_favorites($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1187,7 +1187,7 @@ C<sort> - Sort order. Options are C<oldest> or C<newest> (default)
 
     $resp = $client->account_gallery_favorites($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1223,7 +1223,7 @@ Delete a specific image.
 
     $resp = $client->account_image_ids($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1237,7 +1237,7 @@ C<page> - Page number
 
     $resp = $client->account_images($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1251,7 +1251,7 @@ C<page> - Page number
 
     $resp = $client->account_reply_notifications($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1273,7 +1273,7 @@ Get account settings for a given username.
 
 Update an account's settings.
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1311,7 +1311,7 @@ C<newsletter_subscribed> - A boolean value, true to subscribe to the newsletter,
 
     $resp = $client->account_submissions($username, \%opts);
 
-Valid options are:
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1423,7 +1423,7 @@ Set the images for an album.
 
     $resp = $client->album_update($album_id, \%opts);
 
-Update an album. Valid options are:
+Update an album. Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1555,13 +1555,16 @@ C<album_previews> - Show or hide album previews in the gallery. Default is C<1>.
 
     $resp = $client->gallery_album($album_id);
 
+Get additional information about an album in the gallery.
+
+
 Get information about a specific gallery album.
 
 =head5 gallery_image
 
     $resp = $client->gallery_image($image_id);
 
-Get information about a specific gallery image.
+Get additional information about an image in the gallery.
 
 =head5 gallery_item
 
@@ -1591,7 +1594,10 @@ Get all the comments on a gallery item.
 
     $resp = $client->gallery_item_report($item_id, \%opts);
 
-Report a gallery item. Valid options are:
+Report an Image in the gallery
+
+
+Report a gallery item. Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1635,7 +1641,7 @@ Remove an image from the gallery.
 
     $resp = $client->gallery_search('query', \%opts, \%advanced);
 
-Search the gallery. Valid options are:
+Search the gallery. Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1653,17 +1659,109 @@ C<page> - Page number.
 
 =back
 
+Valid C<\%advanced> keys are:
+
+=over 4
+
+=item *
+
+C<q_all> - Search for all of these words.
+
+=item *
+
+C<q_any> - Search for any of these words.
+
+=item *
+
+C<q_exactly> - Search for exactly this word or phrase.
+
+=item *
+
+C<q_not> - Exclude results matching this.
+
+=item *
+
+C<q_type> - Show results for any file type, or specific file types. C<jpg>, C<png>, C<gif>, C<anigif> (animated gif), C<album>.
+
+=item *
+
+C<q_size_px> - Return images that are greater or equal to the width/height you specify. C<300x300>.
+
+=back
+
 =head5 gallery_share_image
 
-    $resp = $client->gallery_share_image($image_id , $title, \%opts);
+    $resp = $client->gallery_share_image($image_id, $title, \%opts);
+
+Share an image. Valid C<\%opts> keys are:
+
+=over 4
+
+=item *
+
+C<topic> - Topic of the shared image.
+
+=item *
+
+C<terms> - Terms of the shared image.
+
+=item *
+
+C<mature> - Boolean value to mark the shared image as mature.
+
+=item *
+
+C<tags> - Array reference of tags for the shared image.
+
+=back
 
 =head5 gallery_share_album
 
     $resp = $client->gallery_share_album($album_id, $title, \%opts);
 
+Share an album. Valid C<\%opts> keys are:
+
+=over 4
+
+=item *
+
+C<topic> - Topic of the shared image.
+
+=item *
+
+C<terms> - Terms of the shared image.
+
+=item *
+
+C<mature> - Boolean value to mark the shared image as mature.
+
+=item *
+
+C<tags> - Array reference of tags for the shared image.
+
+=back
+
 =head5 gallery_subreddit
 
     $resp = $client->gallery_subreddit('subreddit', \%opts);
+
+Get images from a subreddit. Valid C<\%opts> keys are:
+
+=over 4
+
+=item *
+
+C<sort> - Sort order. Options are C<viral> (default), C<time>, C<top> and C<rising>.
+
+=item *
+
+C<page> - Page number (default is 0)
+
+=item *
+
+C<window> - Window of time. Options are C<day>, C<week> (default), C<month>, C<year>, C<all>.
+I can't wait until NY AG starts seizing trumps assets starting monday
+=back
 
 =head5 gallery_subreddit_image
 
@@ -1673,13 +1771,35 @@ C<page> - Page number.
 
     $resp = $client->gallery_tag($tag, \%opts);
 
+Returns tag metadata, and posts tagged with the C<$tag> provided
+
+=over 4
+
+=item *
+
+C<sort> - Sort order. Options are C<viral> (default), C<time>, C<top> and C<rising>.
+
+=item *
+
+C<page> - Page number (default is 0)
+
+=item *
+
+C<window> - Window of time. Options are C<day>, C<week> (default), C<month>, C<year>, C<all>.
+I can't wait until NY AG starts seizing trumps assets starting monday
+=back
+
 =head5 gallery_tag_info
 
     $resp = $client->gallery_tag_info($tag);
 
+Get gallery tag information.
+
 =head5 gallery_tags
 
     $resp = $client->gallery_tags;
+
+Gets a list of default tags
 
 =head4 IMAGE
 
