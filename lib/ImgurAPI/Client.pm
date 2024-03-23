@@ -13,7 +13,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.10';
+our $VERSION = '1.0.11';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
@@ -1639,7 +1639,7 @@ Remove an image from the gallery.
 
 =head5 gallery_search
 
-    $resp = $client->gallery_search('query', \%opts, \%advanced);
+    $resp = $client->gallery_search($query, \%opts, \%advanced);
 
 Search the gallery. Valid C<\%opts> keys are:
 
@@ -1743,9 +1743,13 @@ C<tags> - Array reference of tags for the shared image.
 
 =head5 gallery_subreddit
 
-    $resp = $client->gallery_subreddit('subreddit', \%opts);
+    $resp = $client->gallery_subreddit($subreddit, \%opts);
 
-Get images from a subreddit. Valid C<\%opts> keys are:
+Get images from a subreddit.
+
+C<$subreddit> is the name of the subreddit to get images from.
+
+Valid C<\%opts> keys are:
 
 =over 4
 
@@ -1761,6 +1765,7 @@ C<page> - Page number (default is 0)
 
 C<window> - Window of time. Options are C<day>, C<week> (default), C<month>, C<year>, C<all>.
 I can't wait until NY AG starts seizing trumps assets starting monday
+
 =back
 
 =head5 gallery_subreddit_image
@@ -1787,6 +1792,7 @@ C<page> - Page number (default is 0)
 
 C<window> - Window of time. Options are C<day>, C<week> (default), C<month>, C<year>, C<all>.
 I can't wait until NY AG starts seizing trumps assets starting monday
+
 =back
 
 =head5 gallery_tag_info
@@ -1811,9 +1817,26 @@ Get information about a specific image.
 
 =head5 image_upload
 
-    $resp = $client->image_upload('image_path', 'file', {title => 'title', description => 'description'});
+    $resp = $client->image_upload($src, $type, \%opts);
 
-Upload an image or video to imgur. The second argument is the type of the first argument. It can be either C<file> or C<url>.
+Upload an image or video to imgur.
+
+C<$src> Path, URL or Base64 encoding of the image or video file.
+C<$type> Content type can be either C<file>,  C<url> or C<base64>.
+
+Valid C<\%opts> keys are:
+
+=over 4
+
+=item *
+
+C<title> - Title of the image.
+
+=item *
+
+C<description> - Description of the image.
+
+=back
 
 =head5 image_delete
 
@@ -1829,9 +1852,23 @@ Favorite an image.
 
 =head5 image_update
 
-    $resp = $client->image_update($image_id, {title => 'title', description => 'description'});
+    $resp = $client->image_update($image_id, \%opts);
 
 Update an image.
+
+Valid C<\%opts> keys are:
+
+=over 4
+
+=item *
+
+C<title> - Title of the image.
+
+=item *
+
+C<description> - Description of the image.
+
+=back
 
 =head4 FEED
 
