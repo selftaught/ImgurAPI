@@ -132,4 +132,14 @@ if (defined $comment_id) {
     'data' => $VAR1->{'success'}
 }
 =cut
+
+    my $comment_delete = $client->comment_delete($comment_id);
+    print Dumper $comment_delete;
+=comment_delete
+{
+    'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+    'status' => 200,
+    'data' => $VAR1->{'success'}
+}
+=cut
 }
