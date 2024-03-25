@@ -60,12 +60,13 @@ my $auth_url = $client->oauth2_authorize_url();
 Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your code on the backend can pull the access token from and then pass it to the client.
 
 ```perl
-my $access_token = get_access_token_from_some_db();
-
-$client->set_access_token($access_token);
+my $client = ImgurAPI::Client->new({
+  access_token => get_access_token_from_some_db()
+});
+# OR $client->set_access_token(get_access_token_from_some_db());
 ```
 
-The client library doesn't handle refreshing the access token for you automatically. It is left up to the calling code to refresh the access token when it expires. This is so you can keep the refresh token updated in the database you stored it in initially. The client library is unaware of the database so we leave it up to you to manage.
+The client library doesn't handle refreshing the access token for you automatically. It is left up to the calling code to refresh the access token when it expires. This is so you can keep the refresh token updated in the database you stored it in initially.
 
 ### Refreshing access tokens
 
