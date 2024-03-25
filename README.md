@@ -1,6 +1,6 @@
-# Imgur API perl library
+# ImgurAPI
 
-ImgurAPI::Client is an Imgur API client module.
+ImgurAPI::Client is an Imgur API client perl module.
 
 ## Installation
 
