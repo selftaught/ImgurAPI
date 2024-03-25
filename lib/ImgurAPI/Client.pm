@@ -596,7 +596,7 @@ sub comment_delete {
 sub comment_replies {
     my $self = shift;
     my $comment_id = shift or die "missing required comment_id";
-    return $self->request("/comment/$comment_id/repies");
+    return $self->request("/comment/$comment_id/replies");
 }
 
 sub comment_reply {
@@ -605,12 +605,7 @@ sub comment_reply {
     my $comment_id = shift or die "missing required comment_id";
     my $comment = shift or die "missing required comment";
 
-    my $data = {
-        'image_id' => $image_id,
-        'comment'  => $comment,
-    };
-
-    return $self->request("/comment/$comment_id", 'POST', $data);
+    return $self->comment_create($image_id, $comment, $comment_id);
 }
 
 sub comment_report {

@@ -15,6 +15,7 @@ my $client = ImgurAPI::Client->new({
 });
 
 my $account_info = $client->account('me');
+print Dumper $account_info;
 
 =account_info
 {
@@ -41,7 +42,7 @@ my $account_info = $client->account('me');
 =cut
 
 my $account_albums = $client->account_albums('me');
-
+print Dumper $account_albums;
 =account_albums
 {
     'success' => 1,
@@ -79,7 +80,7 @@ my $account_albums = $client->account_albums('me');
 =cut
 
 my $account_album_count = $client->account_album_count('me');
-
+print Dumper $account_album_count;
 =account_album_count
 {
     'success' => 1,
@@ -90,7 +91,7 @@ my $account_album_count = $client->account_album_count('me');
 
 
 my $account_album_ids = $client->account_album_ids('me');
-
+print Dumper $account_album_ids;
 =account_album_ids
 {
     'success' => 1,
@@ -112,7 +113,7 @@ my $account_album_ids = $client->account_album_ids('me');
 
 
 my $account_block_create = $client->account_block_create('SelfTaught');
-
+print Dumper $account_block_create;
 =account_block_create
 {
     'status' => 201,
@@ -125,7 +126,7 @@ my $account_block_create = $client->account_block_create('SelfTaught');
 
 
 my $account_blocks = $client->account_blocks;
-
+print Dumper $accounaccount_blockst_album_ids;
 =account_blocks
 {
     'status' => 200,
@@ -142,7 +143,7 @@ my $account_blocks = $client->account_blocks;
 =cut
 
 my $account_block_status = $client->account_block_status('SelfTaught');
-
+print Dumper $account_block_status;
 =account_block_status
 {
     'data' => {
@@ -152,7 +153,7 @@ my $account_block_status = $client->account_block_status('SelfTaught');
 =cut
 
 my $account_block_delete = $client->account_block_delete('SelfTaught');
-
+print Dumper $account_block_delete;
 =account_block_delete
 {
     'status' => 204,
@@ -165,7 +166,7 @@ my $account_block_delete = $client->account_block_delete('SelfTaught');
 
 
 my $account_comments = $client->account_comments('me');
-
+print Dumper $account_comments;
 =account_comments
 {
     'data' => [
@@ -195,7 +196,7 @@ my $account_comments = $client->account_comments('me');
 =cut
 
 my $account_comment_ids = $client->account_comment_ids('me');
-
+print Dumper $account_comment_ids;
 =account_comment_ids
 {
     'status' => 200,
@@ -210,7 +211,6 @@ my $account_comment_ids = $client->account_comment_ids('me');
 if (my $comment_id = shift @{$account_comment_ids->{data}}) {
     my $account_comment_delete = $client->account_comment_delete('me', $comment_id);
 }
-
 =account_comment_delete
 {
     'status' => 200,
@@ -220,7 +220,7 @@ if (my $comment_id = shift @{$account_comment_ids->{data}}) {
 =cut
 
 my $account_favorites = $client->account_favorites('me');
-
+print Dumper $account_favorites;
 =account_favorites
 {
     'data' => [
@@ -269,7 +269,7 @@ my $account_favorites = $client->account_favorites('me');
 =cut
 
 my $account_tag_follow = $client->account_tag_follow('me', 'programming');
-
+print Dumper $account_tag_follow;
 =account_tag_follow
 {
     'status' => 200,
@@ -281,7 +281,7 @@ my $account_tag_follow = $client->account_tag_follow('me', 'programming');
 =cut
 
 my $account_tag_unfollow = $client->account_tag_unfollow('me', 'programming');
-
+print Dumper $account_tag_unfollow;
 =account_tag_unfollow
 {
     'status' => 200,
@@ -293,7 +293,7 @@ my $account_tag_unfollow = $client->account_tag_unfollow('me', 'programming');
 =cut
 
 my $account_gallery_favorites = $client->account_gallery_favorites('me');
-
+print Dumper $account_gallery_favorites;
 =account_gallery_favorites
 {
     'data' => [
@@ -376,7 +376,7 @@ my $account_gallery_favorites = $client->account_gallery_favorites('me');
 =cut
 
 my $account_image = $client->account_image('me', 'DcYwgVi');
-
+print Dumper $account_image;
 =account_image
 {
     'data' => {
@@ -434,7 +434,7 @@ my $account_image = $client->account_image('me', 'DcYwgVi');
 =cut
 
 my $account_images = $client->account_images('me');
-
+print Dumper $account_images;
 =account_images
 {
     'success' => 1,
@@ -476,7 +476,7 @@ my $account_images = $client->account_images('me');
 
 
 my $account_image_count = $client->account_image_count('me');
-
+print Dumper $account_image_count;
 =account_image_count
 {
     'status' => 200,
@@ -486,7 +486,7 @@ my $account_image_count = $client->account_image_count('me');
 =cut
 
 my $account_image_ids = $client->account_image_ids('me');
-
+print Dumper $account_image_ids;
 =account_image_ids
 {
     'status' => 200,
@@ -502,7 +502,7 @@ my $account_image_ids = $client->account_image_ids('me');
 =cut
 
 my $account_reply_notifications = $client->account_reply_notifications('me');
-
+print Dumper $account_reply_notifications;
 =account_reply_notifications
 {
     'status' => 200,
@@ -532,7 +532,7 @@ my $account_reply_notifications = $client->account_reply_notifications('me');
 =cut
 
 my $account_settings = $client->account_settings('me');
-
+print Dumper $account_settings;
 =account_settings
 {
     'success' => 1,
@@ -568,7 +568,7 @@ my $settings = {
 };
 
 my $account_settings_update = $client->account_settings_update('me', $settings);
-
+print Dumper $account_settings_update;
 =account_settings_update
 {
     'status' => 200,
@@ -578,7 +578,7 @@ my $account_settings_update = $client->account_settings_update('me', $settings);
 =cut
 
 my $account_submissions = $client->account_submissions('me');
-
+print Dumper $account_submissions;
 =account_submissions
 {
     'data' => [
@@ -627,7 +627,7 @@ my $account_submissions = $client->account_submissions('me');
 
 
 my $account_verify_email_send = $client->account_verify_email_send('me');
-
+print Dumper $account_verify_email_send;
 =account_verify_email_send
 {
     'data' => 1,
@@ -639,7 +639,6 @@ my $account_verify_email_send = $client->account_verify_email_send('me');
 
 my $account_verify_email_status = $client->account_verify_email_status('me');
 print Dumper $account_verify_email_status;
-
 =account_verify_email_status
 {
     'success' => 1,

@@ -233,8 +233,11 @@ Checkout the examples directory.
 
 #### Comment
 
-- `comment($comment_id)` - get comment info
+- `comment($comment_id)`
   - `$comment_id` - string
+- `comment_create($image_id, $comment)`
+  - `$image_id` - string
+  - `$comment` - string
 - `comment_delete($comment_id)`
   - `$comment_id` - string
 - `comment_replies($comment_id)`
