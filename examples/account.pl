@@ -557,8 +557,7 @@ my $account_settings = $client->account_settings('me');
 }
 =cut
 
-
-my $account_settings_update = $client->account_settings_update({
+my $settings = {
     bio => 'SelfTaughtBot is a bot that posts programming memes',
     public_images => 1,
     album_privacy => 'hidden',
@@ -566,5 +565,85 @@ my $account_settings_update = $client->account_settings_update({
     accepted_gallery_terms => 1,
     show_mature => 0,
     newsletter_subscribed => 0,
-});
-print Dumper $account_settings_update;
+};
+
+my $account_settings_update = $client->account_settings_update('me', $settings);
+
+=account_settings_update
+{
+    'status' => 200,
+    'success' => 1,
+    'data' => 1
+}
+=cut
+
+my $account_submissions = $client->account_submissions('me');
+
+=account_submissions
+{
+    'data' => [
+        {
+        'bandwidth' => 2221833,
+        'comment_count' => 0,
+        'favorite_count' => 0,
+        'ad_type' => 0,
+        'account_id' => 179790421,
+        'downs' => 0,
+        'vote' => undef,
+        'in_most_viral' => bless( do{\(my $o = 0)}, 'JSON::PP::Boolean' ),
+        'favorite' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'in_gallery' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+        'height' => 2349,
+        'score' => 1,
+        'ups' => 1,
+        'section' => '',
+        'title' => 'CuriousCodes Obverse',
+        'is_album' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'nsfw' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'tags' => [],
+        'views' => 3,
+        'topic' => undef,
+        'width' => 2371,
+        'account_url' => 'SelfTaughtBot',
+        'id' => 'DcYwgVi',
+        'points' => 1,
+        'ad_url' => '',
+        'is_ad' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'animated' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'datetime' => 1710902324,
+        'has_sound' => $VAR1->{'data'}[0]{'in_most_viral'},
+        'link' => 'https://i.imgur.com/DcYwgVi.jpg',
+        'topic_id' => 0,
+        'type' => 'image/jpeg',
+        'edited' => 0,
+        'size' => 740611,
+        'description' => 'CuriousCodes Obverse'
+        }
+    ],
+    'status' => 200,
+    'success' => $VAR1->{'data'}[0]{'in_gallery'}
+}
+=cut
+
+
+my $account_verify_email_send = $client->account_verify_email_send('me');
+
+=account_verify_email_send
+{
+    'data' => 1,
+    'success' => 1,
+    'status' => 200
+}
+=cut
+
+
+my $account_verify_email_status = $client->account_verify_email_status('me');
+print Dumper $account_verify_email_status;
+
+=account_verify_email_status
+{
+    'success' => 1,
+    'data' => 0,
+    'status' => 200
+}
+=cut

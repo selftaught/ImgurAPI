@@ -57,7 +57,7 @@ my $auth_url = $client->oauth2_authorize_url();
 
 ### Authentication
 
-Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your code on the backend can pull the access token from and then pass it to the client.
+Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your code on the backend can pull them from and pass them to the client.
 
 ```perl
 my $client = ImgurAPI::Client->new({
@@ -86,6 +86,10 @@ my $resp = $client->refresh_access_token(\%args);
 # Store the refresh & access token somewhere persistent they can be pulled from later.
 # store_refresh_and_access_token_in_db($resp)
 ```
+
+### Examples
+
+Checkout the examples directory.
 
 ### Requests
 
