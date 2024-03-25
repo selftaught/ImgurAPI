@@ -13,7 +13,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.1.0';
+our $VERSION = '1.1.1';
 
 use constant ENDPOINTS => {
     'IMGUR' => 'https://api.imgur.com/3',
