@@ -16,62 +16,57 @@ use XML::LibXML;
 our $VERSION = '1.1.0';
 
 use constant ENDPOINTS => {
-    'IMGUR'           => 'https://api.imgur.com/3',
-    'RAPIDAPI'        => 'https://imgur-apiv3.p.rapidapi.com',
+    'IMGUR' => 'https://api.imgur.com/3',
+    'RAPIDAPI' => 'https://imgur-apiv3.p.rapidapi.com',
     'OAUTH_AUTHORIZE' => 'https://api.imgur.com/oauth2/authorize',
-    'OAUTH_TOKEN'     => 'https://api.imgur.com/oauth2/token',
+    'OAUTH_TOKEN' => 'https://api.imgur.com/oauth2/token',
 };
 
 sub new {
     my $self = shift;
     my $args = shift // {};
     my $vars = {
-        'auth'           => 1,
-        'access_token'   => $args->{'access_token'},
+        'auth' => 1,
+        'access_token' => $args->{'access_token'},
         'oauth_cb_state' => $args->{'oauth_cb_state'},
-        'client_id'      => $args->{'client_id'},
-        'client_secret'  => $args->{'client_secret'},
-        'format_type'    => $args->{'format_type'} // 'json',
-        'rapidapi_key'   => $args->{'rapidapi_key'},
-        'user_agent'     => LWP::UserAgent->new,
-        'response'       => undef,
+        'client_id' => $args->{'client_id'},
+        'client_secret' => $args->{'client_secret'},
+        'format_type' => $args->{'format_type'} || 'json',
+        'lwp' => LWP::UserAgent->new,
+        'rapidapi_key' => $args->{'rapidapi_key'},
+        'refresh_token' => $args->{'refresh_token'},
+        'response' => undef,
         'ratelimit_hdrs' => {},
+        'user_agent' => $args->{'user_agent'} || "ImgurAPI::Client/$VERSION",
     };
 
     return bless $vars, $self;
 }
 
-sub _ua { shift->{'user_agent'} }
+sub _lwp { shift->{'lwp'} }
 
 sub request {
     my ($self, $uri, $http_method, $data, $hdr) = @_;
 
-    # Ensure HTTP method is uppercase
     $http_method = uc($http_method // 'GET');
 
-    # Determine endpoint based on API key presence
     my $endpoint = $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ($uri =~ /^\// ? ENDPOINTS->{'IMGUR'} . $uri : $uri);
 
-    # Append format type and method to the endpoint
     $endpoint .= ($endpoint =~ /\?/ ? '&' : '?') . '_format=' . $self->{'format_type'} . "&_method=$http_method";
 
-    # Set User-Agent header
-    $self->_ua->default_header('User-Agent' => "ImgurAPI::Client/$VERSION");
+    $self->_lwp->default_header('User-Agent' => "ImgurAPI::Client/$VERSION");
 
-    # Set Authorization header based on authentication type
     if ($self->{'auth'}) {
         my $access_token = $self->{'access_token'} // die "Missing required access_token";
-        $self->_ua->default_header('Authorization' => "Bearer $access_token");
+        $self->_lwp->default_header('Authorization' => "Bearer $access_token");
     } elsif ($self->{'client_id'}) {
-        $self->_ua->default_header('Authorization' => "Client-ID " . $self->{'client_id'});
+        $self->_lwp->default_header('Authorization' => "Client-ID " . $self->{'client_id'});
     }
 
-    # Append data to the endpoint for GET and DELETE requests
     if ($http_method =~ /^GET|DELETE$/ && $data && ref($data) eq 'HASH') {
         $endpoint .= "&$_=$data->{$_}" foreach keys %$data;
     }
 
-    # Create HTTP request object
     my $request;
     if ($http_method eq 'POST') {
         $request = HTTP::Request::Common::POST($endpoint, %{$hdr//{}}, Content => $data);
@@ -83,39 +78,58 @@ sub request {
 
     print Dumper $request if $ENV{'DEBUG'};
 
-    # Send the request
-    my $response = $self->_ua->request($request);
+    my $response = $self->_lwp->request($request);
 
-    # Extract rate limit headers
     my @ratelimit_headers = qw(userlimit userremaining userreset clientlimit clientremaining);
     foreach my $header (@ratelimit_headers) {
         my $val = $response->header("x-ratelimit-$header");
         $self->{'ratelimit_headers'}->{$header} = $val && $val =~ /^\d+$/ ? int $val : $val;
     }
 
-    # Store response content
     $self->{'response'} = $response;
     $self->{'response_content'} = $response->decoded_content;
 
-    # Print response content for debugging
-    print Dumper $self->{'response_content'} if $ENV{'DEBUG'};
+    print Dumper $response if $ENV{'DEBUG'};
 
-    # Decode response based on format type
     if ($self->format_type eq 'xml') {
         return XML::LibXML->new->load_xml(string => $response->decoded_content);
     } else {
         my $decoded = eval { decode_json $response->decoded_content };
         if (my $err = $@) {
-            die "Failed to decode JSON response: $err\n" . $response->decoded_content . "\n";
+            die "An error occurred while trying to json decode imgur response: $err\n" . $response->decoded_content;
         }
         return $decoded;
     }
 }
 
+sub refresh_access_token {
+    my $self = shift;
+    my $opts = shift // {};
+
+    my $refresh_token = $opts->{'refresh_token'} || $self->{'refresh_token'} or die "missing required refresh_token";
+    my $client_id = $opts->{'client_id'} || $self->{'client_id'} or die "missing required client_id";
+    my $client_secret = $opts->{'client_secret'} || $self->{'client_secret'} or die "missing required client_secret";
+
+    my $resp = $self->request(ENDPOINTS->{'OAUTH_TOKEN'}, 'POST', {
+        'refresh_token' => $refresh_token,
+        'client_id' => $client_id,
+        'client_secret' => $client_secret,
+        'grant_type' => 'refresh_token',
+    });
+
+    $self->{'access_token'} = $resp->{'access_token'};
+    $self->{'refresh_token'} = $resp->{'refresh_token'};
+
+    return {
+        access_token => $resp->{'access_token'},
+        refresh_token => $resp->{'refresh_token'}
+    }
+}
+
 # Setters
-sub set_auth {
-    my ($self, $auth) = @_;
-    $self->{'auth'} = $auth;
+sub set_access_token {
+    my ($self, $access_token) = @_;
+    $self->{'access_token'} = $access_token;
 }
 
 sub set_client_id {
@@ -138,43 +152,31 @@ sub set_oauth_cb_state {
     $self->{'oauth_cb_state'} = $oauth_cb_state;
 }
 
-sub set_access_token {
-    my ($self, $access_token) = @_;
-    $self->{'access_token'} = $access_token;
-}
-
 sub set_rapidapi_key {
     my ($self, $rapidapi_key) = @_;
     $self->{'rapidapi_key'} = $rapidapi_key;
 }
 
+sub set_refresh_token {
+    my ($self, $refresh_token) = @_;
+    $self->{'refresh_token'} = $refresh_token;
+}
+
+sub set_user_agent {
+    my ($self, $user_agent) = @_;
+    $self->{'user_agent'} = $user_agent;
+}
+
 # Getters
 sub oauth2_authorize_url {
-    my $self      = shift;
+    my $self = shift;
     my $client_id = $self->{'client_id'} or die "missing required client_id";
-    my $state     = $self->{'oauth_cb_state'} // '';
+    my $state = $self->{'oauth_cb_state'} // '';
     return (ENDPOINTS->{'OAUTH_AUTHORIZE'} . "?client_id=$client_id&response_type=token&state=$state");
 }
 
-sub refresh_access_token {
-    my $self = shift;
-    my $opts = shift // {};
-
-    my $refresh_token = $opts->{'refresh_token'} || $self->{'refresh_token'} or die "missing required refresh_token";
-    my $client_id     = $opts->{'client_id'}     || $self->{'client_id'}     or die "missing required client_id";
-    my $client_secret = $opts->{'client_secret'} || $self->{'client_secret'} or die "missing required client_secret";
-
-    my $resp = $self->request(ENDPOINTS->{'OAUTH_TOKEN'}, 'POST', {
-        'refresh_token' => $refresh_token,
-        'client_id'     => $client_id,
-        'client_secret' => $client_secret,
-        'grant_type'    => 'refresh_token',
-    });
-
-    return {
-        access_token  => $resp->{'access_token'},
-        refresh_token => $resp->{'refresh_token'}
-    }
+sub access_token {
+    return shift->{'access_token'}
 }
 
 sub client_id {
@@ -183,10 +185,6 @@ sub client_id {
 
 sub client_secret {
     return shift->{'client_secret'}
-}
-
-sub access_token {
-    return shift->{'access_token'}
 }
 
 sub format_type {
@@ -213,6 +211,10 @@ sub ratelimit_headers {
     return shift->{'ratelimit_headers'}
 }
 
+sub user_agent {
+    return shift->{'user_agent'}
+}
+
 # Account
 sub account {
     my $self = shift;
@@ -223,7 +225,7 @@ sub account {
 sub account_album {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required album id";
+    my $id = shift or die "missing required album id";
     return $self->request("/account/$user/album/$id");
 }
 
@@ -236,7 +238,7 @@ sub account_album_count {
 sub account_album_delete {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required album id";
+    my $id = shift or die "missing required album id";
     return $self->request("/account/$user/album/$id", 'DELETE');
 }
 
@@ -282,7 +284,7 @@ sub account_blocks {
 sub account_comment {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required comment id";
+    my $id = shift or die "missing required comment id";
     return $self->request("/account/$user/comment/$id");
 }
 
@@ -295,7 +297,7 @@ sub account_comment_count {
 sub account_comment_delete {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required comment id";
+    my $id = shift or die "missing required comment id";
     return $self->request("/account/$user/comment/$id", 'DELETE');
 }
 
@@ -317,7 +319,6 @@ sub account_comments {
     return $self->request("/account/$user/comments/$sort/$page");
 }
 
-# https://apidocs.imgur.com/#dcdbad18-260a-4501-8618-a26e7ccb8596
 sub account_delete {
     my $self = shift;
     my $client_id = shift or die "missing required client id";
@@ -346,7 +347,7 @@ sub account_gallery_favorites {
 sub account_image {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required image id";
+    my $id = shift or die "missing required image id";
     return $self->request("/account/$user/image/$id");
 }
 
@@ -359,7 +360,7 @@ sub account_image_count {
 sub account_image_delete {
     my $self = shift;
     my $user = shift or die "missing required username";
-    my $id   = shift or die "missing required image id";
+    my $id = shift or die "missing required image id";
     return $self->request("/account/$user/image/$id", 'DELETE');
 }
 
@@ -383,7 +384,7 @@ sub account_reply_notifications {
     my $self = shift;
     my $user = shift or die "missing required username";
     my $opts = shift // {};
-    my $new  = $opts->{'new'} // 1;
+    my $new = $opts->{'new'} // 1;
     return $self->request("/account/$user/notifications/replies?new=$new");
 }
 
@@ -418,13 +419,13 @@ sub account_submissions {
 
 sub account_tag_follow {
     my $self = shift;
-    my $tag  = shift or die "missing required tag";
+    my $tag = shift or die "missing required tag";
     return $self->request("/account/me/follow/tag/$tag", 'POST');
 }
 
 sub account_tag_unfollow {
     my $self = shift;
-    my $tag  = shift or die "missing required tag";
+    my $tag = shift or die "missing required tag";
     return $self->request("/account/me/follow/tag/$tag", 'DELETE');
 }
 
@@ -443,7 +444,7 @@ sub account_verify_email_status {
 # Album
 sub album {
     my $self = shift;
-    my $id   = shift or die "missing required album id";
+    my $id = shift or die "missing required album id";
     return $self->request("/album/$id");
 }
 
@@ -466,13 +467,13 @@ sub album_create {
 
 sub album_delete {
     my $self = shift;
-    my $id   = shift or die "missing required album id";
+    my $id = shift or die "missing required album id";
     return $self->request("/album/$id", 'DELETE');
 }
 
 sub album_favorite {
     my $self = shift;
-    my $id   = shift or die "missing required album id";
+    my $id = shift or die "missing required album id";
     return $self->request("/album/$id/favorite", 'POST');
 }
 
@@ -591,6 +592,12 @@ sub comment_vote {
     return $self->request("/comment/$comment_id/vote/$vote", 'POST');
 }
 
+# Credits
+sub credits {
+    my $self = shift;
+    return $self->request("/credits");
+}
+
 # Gallery
 sub gallery {
     my $self = shift;
@@ -598,10 +605,10 @@ sub gallery {
 
     die "optional data must be a hashref" if ref $opts ne 'HASH';
 
-    my $section    = $opts->{'section'} // 'hot';
-    my $sort       = $opts->{'sort'} // 'viral';
-    my $page       = $opts->{'page'} // 0;
-    my $window     = $opts->{'window'} // 'day';
+    my $section = $opts->{'section'} // 'hot';
+    my $sort = $opts->{'sort'} // 'viral';
+    my $page = $opts->{'page'} // 0;
+    my $window = $opts->{'window'} // 'day';
     my $show_viral = $opts->{'show_viral'} // 1;
     my $album_prev = $opts->{'album_previews'} // 1;
 
@@ -784,11 +791,11 @@ sub gallery_subreddit_image {
 }
 
 sub gallery_tag {
-    my $self   = shift;
-    my $tag    = shift or die "missing required tag";
-    my $opts   = shift // {};
-    my $sort   = $opts->{'sort'} // 'viral';
-    my $page   = $opts->{'page'} // 0;
+    my $self = shift;
+    my $tag = shift or die "missing required tag";
+    my $opts = shift // {};
+    my $sort = $opts->{'sort'} // 'viral';
+    my $page = $opts->{'page'} // 0;
     my $window = $opts->{'window'} // 'week';
 
     return $self->request(("/gallery/t/$tag/$sort" . ($sort eq 'top' ? "/$window" : "") . "/$page"));
@@ -808,7 +815,7 @@ sub gallery_tags {
 # Image
 sub image {
     my $self = shift;
-    my $id   = shift or die "missing required image id";
+    my $id = shift or die "missing required image id";
     return $self->request("/image/$id");
 }
 
@@ -818,7 +825,7 @@ sub image_upload {
     my $type = shift or die "missing required image/video type";
     my $opts = shift // {};
     my $data = {'image' => $src, 'type' => $type};
-    my %hdr  = ();
+    my %hdr = ();
 
     $data->{'title'} = $opts->{'title'} if $opts->{'title'};
     $data->{'description'} = $opts->{'description'} if $opts->{'description'};
@@ -841,13 +848,13 @@ sub image_delete {
 
 sub image_favorite {
     my $self = shift;
-    my $id   = shift or die "missing required image id";
+    my $id = shift or die "missing required image id";
     return $self->request("/image/$id/favorite", 'POST');
 }
 
 sub image_update {
     my $self = shift;
-    my $id   = shift or die "missing required image id";
+    my $id = shift or die "missing required image id";
     my $opts = shift // {};
     return $self->request("/image/$id", 'POST', $opts);
 }
@@ -873,7 +880,7 @@ This is a client module for interfacing with the Imgur API.
     use ImgurAPI::Client;
 
     my $client = ImgurAPI::Client->new({
-        'client_id'    => 'your_client_id',
+        'client_id' => 'your_client_id',
         'access_token' => 'your_access_token'
     });
 
@@ -891,7 +898,8 @@ After registering a client application with Imgur L<here|https://api.imgur.com/o
 The client can be authenticated by setting the access token and client id. Those can be set a couple of ways. The first way is to do it is by passing them to the constructor:
 
     my $client = ImgurAPI::Client->new({
-        'client_id'    => 'your_client_id',
+        'client_id' => 'your_client_id',
+        'client_secret' => 'your_client_secret'
         'access_token' => 'your_access_token'
     });
 
@@ -906,14 +914,15 @@ Access tokens expire after a period of time. To get a new access token, you can 
 
     my %args = (
         'refresh_token' => 'your_refresh_token',
-        'client_id'     => 'your_client_id',
+        'client_id' => 'your_client_id',
         'client_secret' => 'your_client_secret'
     );
+    my $refresh_token = get_refresh_token_from_datastore();
 
     my $resp = $client->refresh_access_token(\%args);
-
-    my $new_access_token  = $resp->{'access_token'};
     my $new_refresh_token = $resp->{'refresh_token'};
+
+    # Store the new refresh token somewhere persistent so it can be used later when the new access token expires.
 
 
 =head2 METHODS
@@ -928,6 +937,10 @@ Valid constructor arguments are:
 
 =item *
 
+C<access_key> - Access token used to authenticate requests.
+
+=item *
+
 C<client_id> - Client identifier used for authorization, refresh token requests and unauthenticated requests.
 
 =item *
@@ -936,7 +949,11 @@ C<client_secret> - Client secret used for acquiring a refresh token.
 
 =item *
 
-C<access_key> - Access token used to authenticate requests.
+C<format_type> - Api endpoint response format type. Options are C<json> (default) and C<xml>.
+
+=item *
+
+C<oauth_cb_state> - A parameter that's appended to the OAuth2 authorization callback URL. May be useful if you want to pass along a tracking value to the callback endpoint / collector.
 
 =item *
 
@@ -944,11 +961,7 @@ C<rapidapi_key> - Commercial use api key provided by RapidAPI.
 
 =item *
 
-C<format_type> - Api endpoint response format type. Options are C<json> (default) and C<xml>.
-
-=item *
-
-C<oauth_cb_state> - A parameter that's appended to the OAuth2 authorization callback URL. May be useful if you want to pass along a tracking value to the callback endpoint / collector.
+C<user_agent> - User agent string to use for requests (default: 'ImgurAPI::Client/X.X.X')
 
 =back
 
@@ -980,6 +993,10 @@ A getter and setter method is provided for each constructor arg.
 =head4 set_rapidapi_key
 
     $client->set_rapidapi_key('rapidapi_key');
+
+=head4 set_user_agent
+
+    $client->set_user_agent('your_user_agent');
 
 =head3 GETTER METHODS
 
@@ -1025,6 +1042,12 @@ This method will return the last response content from the last request.
 
 This method will return a hashref containing the rate limit headers from the last request. The keys returned are:
 
+=head4 user_agent
+
+    $user_agent = $client->user_agent;
+
+Returns the current user agent string.
+
 =over 4
 
 =item *
@@ -1048,6 +1071,8 @@ C<clientlimit> - Total credits that can be allocated for the application in a da
 C<clientremaining> - Total credits remaining for the application in a day.
 
 =back
+
+You can also get rate limit information by calling the C<credits> method.
 
 
 =head3 API REQUEST METHODS

@@ -18,7 +18,7 @@ my $rapidapi_key   = 'myR4p1d4p1K3y';
 subtest 'Constructor defaults' => sub {
     my $imgur = ImgurAPI::Client->new;
 
-    isa_ok $imgur->_ua, 'LWP::UserAgent', 'ImgurAPI->_ua';
+    isa_ok $imgur->_lwp, 'LWP::UserAgent', 'ImgurAPI->_lwp';
 
     is $imgur->access_token, undef, 'access_token default is undef';
     is $imgur->client_id, undef, 'client_id default is undef';
@@ -93,6 +93,32 @@ subtest 'ImgurAPI endpoint methods' => sub {
         comment_reply
         comment_report
         comment_vote
+
+        gallery_album
+        gallery_image
+        gallery_item
+        gallery_item_comment
+        gallery_item_comment_info
+        gallery_item_comments
+        gallery_item_report
+        gallery_item_tags
+        gallery_item_tags_update
+        gallery_item_vote
+        gallery_item_votes
+        gallery_image_remove
+        gallery_search
+        gallery_share_image
+        gallery_share_album
+        gallery_subreddit
+        gallery_subreddit_image
+        gallery_tag
+        gallery_tag_info
+        gallery_tags
+
+        image_upload
+        image_delete
+        image_favorite
+        image_update
     ));
 };
 

@@ -23,17 +23,23 @@ or
 ```perl
 use ImgurAPI::Client;
 
-my $client = ImgurAPI::Client->new( \%options );
+my %args = (
+  # ...
+);
+
+my $client = ImgurAPI::Client->new(\%args);
 ```
 
-Valid constructor options are:
+Valid constructor arg keys are:
 
+- `access_key` - used to authenticate requests
 - `client_id` - client identifier. used for authorization, refresh token requests and unauthenticated requests
 - `client_secret` - client secret used for acquiring a refresh token
-- `access_key` - used to authenticate requests
-- `rapidapi_key` - commercial use api key
 - `format_type` - api endpoint response format type. valid values are `json` (default) and `xml`
-- `oauth_cb_state` - parameter that's appended to oauth2 authorization callback url. this may be useful if you want to pass along a tracking value to the callback endpoint / collector
+- `oauth_cb_state` - parameter that's appended to oauth2 authorization callback url
+- `rapidapi_key` - commercial use api key
+- `refresh_token` - refresh token
+- `user_agent` - user agent string to send in requests
 
 You can also set the values using the setter member subroutines listed at the bottom of the page.
 
@@ -50,6 +56,7 @@ my $auth_url = $client->oauth2_authorize_url();
 ```
 
 ### Authentication
+
 Once the application has been authorized, the access token, refresh token and expires_in values will be passed to the callback endpoint URL that was specified during application registration. The callback endpoint should collect the values and store them somewhere your code on the backend can pull the access token from and then pass it to the client.
 
 ```perl
@@ -59,6 +66,25 @@ $client->set_access_token($access_token);
 ```
 
 The client library doesn't handle refreshing the access token for you automatically. It is left up to the calling code to refresh the access token when it expires. This is so you can keep the refresh token updated in the database you stored it in initially. The client library is unaware of the database so we leave it up to you to manage.
+
+### Refreshing access tokens
+
+Access tokens expire after a period of time. To get a new access token, you can use the `refresh_access_token` method. This method requires the `refresh_token`, `client_id` and `client_secret`. You can pass these values to the method or set them using the setter methods. If you don't pass them and they're not set internally in the client, the method will die with an error. If the call is successful, the internal access_token will be updated to the new token for use in subsequent requests. However, the new refresh and access tokens should be stored somewhere persistent for later use.
+
+
+```perl
+my %args = (
+    'refresh_token' => get_refresh_token_from_db(),
+    'client_id' => get_client_id_from_db(),
+    'client_secret' => get_client_secret_from_db()
+);
+
+# returns a hashref containing 'access_token' and 'refresh_token' keys
+my $resp = $client->refresh_access_token(\%args);
+
+# Store the refresh & access token somewhere persistent they can be pulled from later.
+# store_refresh_and_access_token_in_db($resp)
+```
 
 ### Requests
 
@@ -310,25 +336,28 @@ The client library doesn't handle refreshing the access token for you automatica
 
 ### Getters
 
+- `access_token()`
+- `client_id()`
+- `client_secret()`
+- `format_type()`
+- `oauth_cb_state()`
+- `rapidapi_key()`
+- `refresh_token()`
 - `response()`
 - `response_content()`
-- `access_token()`
 - `ratelimit_headers()`
-  - returns rate limit key value pairs from imgur api response:
-    - `userlimit`
-    - `userremaining`
-    - `userreset`
-    - `clientlimit`
-    - `clientremaining`
+- `user_agent()`
 
 ### Setters
 
-- `set_state(state)`
-- `set_access_token(access_token)`
-- `set_refresh_token(refresh_token)`
-- `set_expiration_datetime(datetime)`
-- `set_no_auth()`
-
+- `set_access_token($access_token)`
+- `set_client_id($client_id)`
+- `set_client_secret($secret)`
+- `set_format_type($format_type)`
+- `set_oauth_cb_state($state)`
+- `set_rapidapi_key($rapidapi_key)`
+- `set_refresh_token($refresh_token)`
+- `set_user_agent($user_agent)`
 
 ## Publishing to CPAN
 
