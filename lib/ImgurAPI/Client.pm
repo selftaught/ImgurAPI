@@ -13,7 +13,7 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.1.1';
+our $VERSION = '1.1.2';
 
 use constant ENDPOINTS => {
     'IMGUR' => 'https://api.imgur.com/3',
@@ -247,7 +247,7 @@ sub account_album_ids {
     my $user = shift or die "missing requied username";
     my $opts = shift // {};
     my $page = $opts->{'page'} // 0;
-    return $self->request("/account/$user/ids/$page");
+    return $self->request("/account/$user/albums/ids/$page");
 }
 
 sub account_albums {
@@ -261,19 +261,59 @@ sub account_albums {
 sub account_block_status {
     my $self = shift;
     my $user = shift or die "missing required username";
-    return $self->request("/account/$user/block");
+    return $self->request("https://api.imgur.com/account/v1/$user/block");
 }
 
 sub account_block_create {
     my $self = shift;
     my $user = shift or die "missing required username";
-    return $self->request("/account/v1/$user/block", 'POST');
+    my $resp = eval { $self->request("https://api.imgur.com/account/v1/$user/block", 'POST') };
+
+    if (my $err = $@) {
+        # we have to check if the response was successful when it throws because the imgur api
+        # states it will return the same object we return just below upon blocking a user.. but they dont.
+        # so we end up trying to json decode an empty response which throws an error. if they just returned
+        # the object they said they would in their api doc, we wouldnt get a json decode error.
+        # 201 and 'Created' msg indicates success.
+        if ($self->{'response'}->code != 201 ||
+            $self->{'response'}->{'_msg'} ne 'Created') {
+            die $err;
+        }
+        $resp = {
+            'success' => 1,
+            'status' => 201,
+            'data' => {
+                'blocked' => 1,
+            }
+        };
+    }
+    return $resp;
 }
 
 sub account_block_delete {
     my $self = shift;
     my $user = shift or die "missing required username";
-    return $self->request("/account/v1/$user/block", 'DELETE');
+    my $resp = eval { $self->request("https://api.imgur.com/account/v1/$user/block", 'DELETE') };
+
+    if (my $err = $@) {
+        # we have to check if the response was successful when it throws because the imgur api
+        # states it will return the same object we return just below upon unblocking a user.. but they dont.
+        # so we end up trying to json decode an empty response which throws an error. if they just returned
+        # the object they said they would in their api doc, we wouldnt get a json decode error.
+        # 204 rc indicates success.
+        if ($self->{'response'}->code == 204) {
+            return {
+                'success' => 1,
+                'status' => 204,
+                'data' => {
+                    'blocked' => 0,
+                }
+            }
+        }
+        die $err;
+    }
+
+    return $resp;
 }
 
 sub account_blocks {
@@ -369,7 +409,7 @@ sub account_image_ids {
     my $user = shift or die "missing required username";
     my $opts = shift // {};
     my $page = $opts->{'page'} // 0;
-    return $self->request("/account/$user/image/ids/$page");
+    return $self->request("/account/$user/images/ids/$page");
 }
 
 sub account_images {
