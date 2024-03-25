@@ -13,12 +13,13 @@ use Mozilla::CA;
 use Scalar::Util;
 use XML::LibXML;
 
-our $VERSION = '1.0.11';
+our $VERSION = '1.1.0';
 
 use constant ENDPOINTS => {
     'IMGUR'           => 'https://api.imgur.com/3',
     'RAPIDAPI'        => 'https://imgur-apiv3.p.rapidapi.com',
     'OAUTH_AUTHORIZE' => 'https://api.imgur.com/oauth2/authorize',
+    'OAUTH_TOKEN'     => 'https://api.imgur.com/oauth2/token',
 };
 
 sub new {
@@ -49,7 +50,7 @@ sub request {
     $http_method = uc($http_method // 'GET');
 
     # Determine endpoint based on API key presence
-    my $endpoint = $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ENDPOINTS->{'IMGUR'} . $uri;
+    my $endpoint = $self->{'rapidapi_key'} ? ENDPOINTS->{'RAPIDAPI'} . $uri : ($uri =~ /^\// ? ENDPOINTS->{'IMGUR'} . $uri : $uri);
 
     # Append format type and method to the endpoint
     $endpoint .= ($endpoint =~ /\?/ ? '&' : '?') . '_format=' . $self->{'format_type'} . "&_method=$http_method";
@@ -79,6 +80,8 @@ sub request {
     } else {
         $request = HTTP::Request->new($http_method, $endpoint);
     }
+
+    print Dumper $request if $ENV{'DEBUG'};
 
     # Send the request
     my $response = $self->_ua->request($request);
@@ -151,6 +154,27 @@ sub oauth2_authorize_url {
     my $client_id = $self->{'client_id'} or die "missing required client_id";
     my $state     = $self->{'oauth_cb_state'} // '';
     return (ENDPOINTS->{'OAUTH_AUTHORIZE'} . "?client_id=$client_id&response_type=token&state=$state");
+}
+
+sub refresh_access_token {
+    my $self = shift;
+    my $opts = shift // {};
+
+    my $refresh_token = $opts->{'refresh_token'} || $self->{'refresh_token'} or die "missing required refresh_token";
+    my $client_id     = $opts->{'client_id'}     || $self->{'client_id'}     or die "missing required client_id";
+    my $client_secret = $opts->{'client_secret'} || $self->{'client_secret'} or die "missing required client_secret";
+
+    my $resp = $self->request(ENDPOINTS->{'OAUTH_TOKEN'}, 'POST', {
+        'refresh_token' => $refresh_token,
+        'client_id'     => $client_id,
+        'client_secret' => $client_secret,
+        'grant_type'    => 'refresh_token',
+    });
+
+    return {
+        access_token  => $resp->{'access_token'},
+        refresh_token => $resp->{'refresh_token'}
+    }
 }
 
 sub client_id {
@@ -875,6 +899,22 @@ The second way is to use the setter methods:
 
     $client->set_access_token('your_access_token');
     $client->set_client_id('your_client_id');
+
+=head2 Refreshing Access Tokens
+
+Access tokens expire after a period of time. To get a new access token, you can use the C<refresh_access_token> method. This method requires the refresh token, client id and client secret. You can pass these values to the method or set them using the setter methods. If you don't pass them and they're not set, the method will die. If the function is successful it will update the internal access_token and refresh_token to use for subsequent requests and then return them in a hashref.
+
+    my %args = (
+        'refresh_token' => 'your_refresh_token',
+        'client_id'     => 'your_client_id',
+        'client_secret' => 'your_client_secret'
+    );
+
+    my $resp = $client->refresh_access_token(\%args);
+
+    my $new_access_token  = $resp->{'access_token'};
+    my $new_refresh_token = $resp->{'refresh_token'};
+
 
 =head2 METHODS
 
