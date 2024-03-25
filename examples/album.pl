@@ -6,6 +6,7 @@ use warnings;
 use Data::Dumper;
 use FindBin qw($Bin);
 use lib "$Bin/../lib";
+
 use ImgurAPI::Client;
 
 my $client = ImgurAPI::Client->new({
@@ -14,13 +15,13 @@ my $client = ImgurAPI::Client->new({
     access_token => $ENV{'ACCESS_TOKEN'},
 });
 
-my $image_id = 'uUK2UnD';
+my $images = ['uUK2UnD', 'NWzreUw'];
 
 my $album_create = $client->album_create({
     title => 'Test Album',
     description => 'This is a test album',
     privacy => 'public',
-    ids => [$image_id],
+    ids => [$images->[0]],
 });
 my $album_id = $album_create->{'data'}->{'id'};
 print Dumper $album_create;
@@ -32,6 +33,132 @@ print Dumper $album_create;
         'deletehash' => '77XpjvzI36sO7Mf'
     },
     'status' => 200
+}
+=cut
+
+my $updated_title = 'Test Album Updated';
+my $updated_description = 'This is a test album updated';
+my $album_update = $client->album_update($album_id, {
+    title => $updated_title,
+    description => $updated_description,
+    privacy => 'hidden',
+});
+print Dumper $album_update;
+=album_update
+{
+    'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+    'status' => 200,
+    'data' => {
+        'id' => '0b5xSH4',
+        'deletehash' => 'yvRS5U3hChR5jFA'
+    }
+}
+=cut
+
+my $updated_album_info = $client->album($album_id);
+print Dumper $updated_album_info;
+=album
+{
+    'status' => 200,
+    'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+    'data' => {
+        'images_count' => 1,
+        'is_album' => $VAR1->{'success'},
+        'layout' => 'blog',
+        'title' => 'Test Album Updated',
+        'deletehash' => 'EMwCtKJNM8uX5Vp',
+        'id' => 'oNh3L0g',
+        'link' => 'https://imgur.com/a/oNh3L0g',
+        'datetime' => 1711348754,
+        'ad_config' => {
+            'highRiskFlags' => [],
+            'nsfw_score' => 0,
+            'unsafe_flags' => [],
+            'wallUnsafeFlags' => [],
+            'wall_unsafe_flags' => [],
+            'showAdLevel' => 2,
+            'high_risk_flags' => [],
+            'show_ad_level' => 2,
+            'show_ads' => $VAR1->{'success'},
+            'showsAds' => $VAR1->{'success'},
+            'safeFlags' => [
+                'not_in_gallery',
+                'share'
+            ],
+            'unsafeFlags' => [],
+            'safe_flags' => [
+                'not_in_gallery',
+                'share'
+            ]
+        },
+        'include_album_ads' => bless( do{\(my $o = 0)}, 'JSON::PP::Boolean' ),
+        'cover_width' => 256,
+        'in_gallery' => $VAR1->{'data'}{'include_album_ads'},
+        'nsfw' => $VAR1->{'data'}{'include_album_ads'},
+        'favorite' => $VAR1->{'data'}{'include_album_ads'},
+        'account_id' => 179790421,
+        'account_url' => 'SelfTaughtBot',
+        'description' => 'This is a test album updated',
+        'images' => [
+            {
+                'datetime' => 1710891746,
+                'vote' => undef,
+                'id' => 'uUK2UnD',
+                'link' => 'https://i.imgur.com/uUK2UnD.jpg',
+                'deletehash' => 'aOKzwGKI7Kncqt5',
+                'size' => 9490,
+                'type' => 'image/jpeg',
+                'title' => undef,
+                'has_sound' => $VAR1->{'data'}{'include_album_ads'},
+                'bandwidth' => 47450,
+                'animated' => $VAR1->{'data'}{'include_album_ads'},
+                'width' => 256,
+                'ad_url' => '',
+                'height' => 256,
+                'ad_type' => 0,
+                'in_most_viral' => $VAR1->{'data'}{'include_album_ads'},
+                'name' => 'Q4hMS.jpg',
+                'in_gallery' => $VAR1->{'data'}{'include_album_ads'},
+                'account_url' => undef,
+                'description' => undef,
+                'nsfw' => undef,
+                'account_id' => undef,
+                'favorite' => $VAR1->{'data'}{'include_album_ads'},
+                'views' => 5,
+                'section' => undef,
+                'edited' => '0',
+                'tags' => [],
+                'is_ad' => $VAR1->{'data'}{'include_album_ads'}
+            }
+        ],
+        'cover' => 'uUK2UnD',
+        'views' => 0,
+        'cover_height' => 256,
+        'section' => undef,
+        'privacy' => 'hidden',
+        'cover_edited' => undef,
+        'is_ad' => $VAR1->{'data'}{'include_album_ads'}
+    }
+}
+=cut
+
+my $album_favorite = $client->album_favorite($album_id);
+print Dumper $album_favorite;
+=album_favorite
+{
+    'data' => 'favorited',
+    'status' => 200,
+    'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' )
+}
+=cut
+
+my $album_images_add = $client->album_images_add($album_id, [$images->[1]]);
+print Dumper $album_images_add;
+=album_images_add
+{
+    'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+    'status' => 200,
+    'data' => $VAR1->{'success'}
 }
 =cut
 
@@ -77,7 +204,7 @@ print Dumper $album_images;
 =cut
 
 
-my $album_image = $client->album_image($album_id, $image_id);
+my $album_image = $client->album_image($album_id, $images->[0]);
 print Dumper $album_image;
 =album_image
 {
@@ -139,7 +266,7 @@ print Dumper $album_image;
 
 
 my $album_delete = $client->album_delete($album_id);
-# print Dumper $album_delete;
+print Dumper $album_delete;
 =album_delete
 {
     'success' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
@@ -147,3 +274,4 @@ my $album_delete = $client->album_delete($album_id);
     'status' => 200
 }
 =cut
+
