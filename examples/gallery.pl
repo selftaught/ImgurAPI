@@ -347,11 +347,11 @@ my $gallery_subreddit = $client->gallery_subreddit('programming');
 }
 =cut
 
-
-my $gallery_image = $client->gallery_subreddit_image(
-    'programming', $gallery_subreddit->{'data'}->[0]->{'id'}
+my $subreddit_image_id = $gallery_subreddit->{'data'}->[0]->{'id'};
+my $gallery_subreddit_image = $client->gallery_subreddit_image(
+    'programming', $subreddit_image_id
 );
-print Dumper $gallery_image;
+# print Dumper $gallery_subreddit_image;
 
 =gallery_subreddit_image
 {
@@ -421,5 +421,222 @@ print Dumper $gallery_image;
         'comment_count' => undef,
         'favorite_count' => undef
     }
+}
+=cut
+
+
+my $gallery_tag = $client->gallery_tag('theoffice');
+print Dumper $gallery_tag;
+
+=gallery_tab
+{
+    'data' => {
+        'display_name' => 'theoffice',
+        'background_hash' => '5uFU9FR',
+        'description' => '',
+        'following' => bless( do{\(my $o = 0)}, 'JSON::PP::Boolean' ),
+        'is_whitelisted' => bless( do{\(my $o = 1)}, 'JSON::PP::Boolean' ),
+        'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+        'background_is_animated' => $VAR1->{'data'}{'following'},
+        'followers' => 3432,
+        'logo_destination_url' => undef,
+        'total_items' => 1893,
+        'thumbnail_hash' => undef,
+        'is_promoted' => $VAR1->{'data'}{'following'},
+        'items' => [
+            {
+                'cover_height' => 445,
+                'account_id' => 178806661,
+                'description' => undef,
+                'account_url' => 'TRFRADIO',
+                'section' => '',
+                'topic_id' => undef,
+                'id' => '6YTszNe',
+                'layout' => 'blog',
+                'nsfw' => $VAR1->{'data'}{'following'},
+                'score' => 9,
+                'vote' => undef,
+                'privacy' => 'hidden',
+                'in_most_viral' => $VAR1->{'data'}{'following'},
+                'favorite' => $VAR1->{'data'}{'following'},
+                'views' => 1030,
+                'favorite_count' => 0,
+                'tags' => [
+                    {
+                    'total_items' => 8842,
+                    'is_promoted' => $VAR1->{'data'}{'following'},
+                    'thumbnail_hash' => undef,
+                    'description_annotations' => {},
+                    'logo_hash' => undef,
+                    'name' => 'birthday',
+                    'accent' => '2E6197',
+                    'display_name' => 'birthday',
+                    'background_hash' => 'eWY7qg5',
+                    'description' => '',
+                    'following' => $VAR1->{'data'}{'following'},
+                    'is_whitelisted' => $VAR1->{'data'}{'following'},
+                    'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+                    'background_is_animated' => $VAR1->{'data'}{'following'},
+                    'logo_destination_url' => undef,
+                    'followers' => 2094
+                    },
+                    {
+                    'background_hash' => 'R1dEESs',
+                    'description' => '',
+                    'display_name' => 'tantric',
+                    'is_whitelisted' => $VAR1->{'data'}{'following'},
+                    'background_is_animated' => $VAR1->{'data'}{'following'},
+                    'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+                    'logo_destination_url' => undef,
+                    'followers' => 3,
+                    'following' => $VAR1->{'data'}{'following'},
+                    'thumbnail_hash' => undef,
+                    'is_promoted' => $VAR1->{'data'}{'following'},
+                    'total_items' => 2,
+                    'logo_hash' => undef,
+                    'accent' => '5E58CB',
+                    'name' => 'tantric',
+                    'description_annotations' => {}
+                    },
+                    {
+                    'is_whitelisted' => $VAR1->{'data'}{'following'},
+                    'background_is_animated' => $VAR1->{'data'}{'following'},
+                    'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+                    'logo_destination_url' => undef,
+                    'followers' => 15,
+                    'following' => $VAR1->{'data'}{'following'},
+                    'background_hash' => '5uFU9FR',
+                    'description' => '',
+                    'display_name' => 'walkhard',
+                    'logo_hash' => undef,
+                    'accent' => 'B85E44',
+                    'name' => 'walkhard',
+                    'description_annotations' => {},
+                    'thumbnail_hash' => undef,
+                    'is_promoted' => $VAR1->{'data'}{'following'},
+                    'total_items' => 19
+                    },
+                    {
+                    'accent' => 'B85E44',
+                    'name' => 'theoffice',
+                    'logo_hash' => undef,
+                    'description_annotations' => {},
+                    'thumbnail_hash' => undef,
+                    'is_promoted' => $VAR1->{'data'}{'following'},
+                    'total_items' => 1891,
+                    'logo_destination_url' => undef,
+                    'followers' => 3432,
+                    'is_whitelisted' => $VAR1->{'data'}{'following'},
+                    'background_is_animated' => $VAR1->{'data'}{'following'},
+                    'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+                    'following' => $VAR1->{'data'}{'following'},
+                    'description' => '',
+                    'background_hash' => '5uFU9FR',
+                    'display_name' => 'theoffice'
+                    },
+                    {
+                    'display_name' => 'game of thrones',
+                    'background_hash' => 'jFCTPdP',
+                    'description' => 'spoilers within',
+                    'following' => $VAR1->{'data'}{'following'},
+                    'background_is_animated' => $VAR1->{'data'}{'following'},
+                    'thumbnail_is_animated' => $VAR1->{'data'}{'following'},
+                    'is_whitelisted' => $VAR1->{'data'}{'following'},
+                    'followers' => 35748,
+                    'logo_destination_url' => undef,
+                    'total_items' => 23804,
+                    'thumbnail_hash' => undef,
+                    'is_promoted' => $VAR1->{'data'}{'following'},
+                    'description_annotations' => {},
+                    'logo_hash' => undef,
+                    'name' => 'game_of_thrones',
+                    'accent' => 'a18060'
+                    }
+                ],
+                'include_album_ads' => $VAR1->{'data'}{'following'},
+                'ad_url' => '',
+                'ad_config' => {
+                    'safe_flags' => [
+                                    'album',
+                                    'in_gallery',
+                                    'gallery'
+                                    ],
+                    'unsafeFlags' => [],
+                    'show_ad_level' => 2,
+                    'wall_unsafe_flags' => [],
+                    'highRiskFlags' => [],
+                    'showAdLevel' => 2,
+                    'show_ads' => $VAR1->{'data'}{'is_whitelisted'},
+                    'safeFlags' => [
+                                    'album',
+                                    'in_gallery',
+                                    'gallery'
+                                    ],
+                    'wallUnsafeFlags' => [],
+                    'unsafe_flags' => [],
+                    'nsfw_score' => '0.1',
+                    'showsAds' => $VAR1->{'data'}{'is_whitelisted'},
+                    'high_risk_flags' => []
+                },
+                'images' => [
+                    {
+                        'ups' => undef,
+                        'has_sound' => $VAR1->{'data'}{'following'},
+                        'ad_type' => 0,
+                        'edited' => '0',
+                        'in_gallery' => $VAR1->{'data'}{'following'},
+                        'is_ad' => $VAR1->{'data'}{'following'},
+                        'title' => undef,
+                        'link' => 'https://i.imgur.com/o2MkiGB.png',
+                        'height' => 445,
+                        'datetime' => 1709825003,
+                        'comment_count' => undef,
+                        'downs' => undef,
+                        'bandwidth' => 331739158,
+                        'points' => undef,
+                        'animated' => $VAR1->{'data'}{'following'},
+                        'id' => 'o2MkiGB',
+                        'size' => 475271,
+                        'section' => undef,
+                        'description' => undef,
+                        'account_url' => undef,
+                        'width' => 1200,
+                        'account_id' => undef,
+                        'ad_url' => '',
+                        'type' => 'image/png',
+                        'tags' => [],
+                        'favorite_count' => undef,
+                        'in_most_viral' => $VAR1->{'data'}{'following'},
+                        'favorite' => $VAR1->{'data'}{'following'},
+                        'views' => 698,
+                        'score' => undef,
+                        'vote' => undef,
+                        'nsfw' => undef
+                    }
+                    ],
+                'title' => 'Mar 7 birthdays',
+                'is_ad' => $VAR1->{'data'}{'following'},
+                'in_gallery' => $VAR1->{'data'}{'is_whitelisted'},
+                'ad_type' => 0,
+                'images_count' => 1,
+                'ups' => 13,
+                'cover' => 'o2MkiGB',
+                'topic' => undef,
+                'points' => 9,
+                'downs' => 4,
+                'comment_count' => 1,
+                'is_album' => $VAR1->{'data'}{'is_whitelisted'},
+                'datetime' => 1709825120,
+                'link' => 'https://imgur.com/a/6YTszNe',
+                'cover_width' => 1200
+            },
+        ],
+        'description_annotations' => {},
+        'logo_hash' => undef,
+        'accent' => 'B85E44',
+        'name' => 'theoffice'
+    },
+    'status' => 200,
+    'success' => $VAR1->{'data'}{'is_whitelisted'}
 }
 =cut
