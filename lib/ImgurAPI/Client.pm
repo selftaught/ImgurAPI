@@ -662,11 +662,6 @@ sub gallery_image {
     return $self->request("/gallery/image/$image_id");
 }
 
-sub gallery_item {
-    my ($self, $id) = @_;
-    return $self->request("/gallery/$id");
-}
-
 sub gallery_item_comment {
     my $self = shift;
     my $id = shift or die "missing required album/image id";
@@ -1665,12 +1660,6 @@ Get information about a specific gallery album.
     $resp = $client->gallery_image($image_id);
 
 Get additional information about an image in the gallery.
-
-=head5 gallery_item
-
-    $resp = $client->gallery_item($item_id);
-
-Get information about a specific gallery item.
 
 =head5 gallery_item_comment
 

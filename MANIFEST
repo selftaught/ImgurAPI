@@ -7,4 +7,8 @@ MYMETA.json
 MYMETA.yml
 README.md
 t/imgurapi.t
-examples
+examples/account.pl
+examples/album.pl
+examples/authorize.pl
+examples/comment.ply
+examples/gallery.pl
